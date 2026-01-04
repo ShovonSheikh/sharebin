@@ -7,12 +7,12 @@ import { Copy, Check, Plus, Clock, Eye, Code, FileText, Flame, ExternalLink } fr
 import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { CodeBlock } from '@/components/share/CodeBlock';
+import { CodeBlock } from '@/components/paste/CodeBlock';
 import { formatDate } from '@/lib/constants';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 
-interface Share {
+interface Paste {
   id: string;
   content: string;
   title: string | null;
@@ -24,31 +24,31 @@ interface Share {
   burned?: boolean;
 }
 
-interface ShareViewProps {
-  share: Share;
+interface PasteViewProps {
+  paste: Paste;
 }
 
-export function ShareView({ share }: ShareViewProps) {
+export function PasteView({ paste }: PasteViewProps) {
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
   const [embedCopied, setEmbedCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(
-    share.syntax === 'markdown' ? 'rendered' : 'code'
+    paste.syntax === 'markdown' ? 'rendered' : 'code'
   );
 
-  const shareUrl = `${window.location.origin}/s/${share.id}`;
-  const embedUrl = `${window.location.origin}/embed/${share.id}`;
+  const pasteUrl = `${window.location.origin}/p/${paste.id}`;
+  const embedUrl = `${window.location.origin}/embed/${paste.id}`;
   const embedCode = `<iframe src="${embedUrl}" width="100%" height="400" frameborder="0" style="border-radius: 8px; border: 1px solid #333;"></iframe>`;
 
   const copyContent = async () => {
-    await navigator.clipboard.writeText(share.content);
+    await navigator.clipboard.writeText(paste.content);
     setCopied(true);
     toast.success('Content copied to clipboard');
     setTimeout(() => setCopied(false), 2000);
   };
 
   const copyUrl = async () => {
-    await navigator.clipboard.writeText(shareUrl);
+    await navigator.clipboard.writeText(pasteUrl);
     setUrlCopied(true);
     toast.success('URL copied to clipboard');
     setTimeout(() => setUrlCopied(false), 2000);
@@ -64,12 +64,12 @@ export function ShareView({ share }: ShareViewProps) {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Burn Warning */}
-      {share.burned && (
+      {paste.burned && (
         <Card className="p-4 bg-orange-500/10 border-orange-500/20">
           <div className="flex items-center gap-3 text-orange-500">
             <Flame className="h-5 w-5" />
             <div>
-              <p className="font-medium">This share has been burned</p>
+              <p className="font-medium">This paste has been burned</p>
               <p className="text-sm opacity-80">
                 This content was set to delete after reading. Save it now if you need it.
               </p>
@@ -81,14 +81,14 @@ export function ShareView({ share }: ShareViewProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="space-y-1">
-          {share.title && (
-            <h1 className="text-2xl font-bold text-foreground">{share.title}</h1>
+          {paste.title && (
+            <h1 className="text-2xl font-bold text-foreground">{paste.title}</h1>
           )}
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Badge variant="secondary" className="font-mono">
-              {share.syntax}
+              {paste.syntax}
             </Badge>
-            {share.burn_after_read && (
+            {paste.burn_after_read && (
               <Badge variant="outline" className="text-orange-500 border-orange-500/50">
                 <Flame className="h-3 w-3 mr-1" />
                 Burn after read
@@ -96,11 +96,11 @@ export function ShareView({ share }: ShareViewProps) {
             )}
             <span className="flex items-center gap-1">
               <Eye className="h-3 w-3" />
-              {share.views} views
+              {paste.views} views
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {formatDate(share.created_at)}
+              {formatDate(paste.created_at)}
             </span>
           </div>
         </div>
@@ -120,7 +120,7 @@ export function ShareView({ share }: ShareViewProps) {
       </div>
 
       {/* Content Tabs */}
-      {share.syntax === 'markdown' ? (
+      {paste.syntax === 'markdown' ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-secondary">
             <TabsTrigger value="rendered" className="gap-2">
@@ -136,17 +136,17 @@ export function ShareView({ share }: ShareViewProps) {
           <TabsContent value="rendered" className="mt-4">
             <Card className="p-6 bg-secondary border-border prose prose-invert max-w-none">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {share.content}
+                {paste.content}
               </ReactMarkdown>
             </Card>
           </TabsContent>
 
           <TabsContent value="code" className="mt-4">
-            <CodeBlock content={share.content} syntax={share.syntax} />
+            <CodeBlock content={paste.content} syntax={paste.syntax} />
           </TabsContent>
         </Tabs>
       ) : (
-        <CodeBlock content={share.content} syntax={share.syntax} />
+        <CodeBlock content={paste.content} syntax={paste.syntax} />
       )}
 
       {/* Share URL & QR Code */}
@@ -154,10 +154,10 @@ export function ShareView({ share }: ShareViewProps) {
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
           <div className="space-y-4 flex-1">
             <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Share URL</p>
+              <p className="text-sm font-medium text-foreground">Paste URL</p>
               <div className="flex items-center gap-2">
                 <code className="flex-1 bg-secondary px-4 py-2 rounded-md font-mono text-sm text-primary break-all">
-                  {shareUrl}
+                  {pasteUrl}
                 </code>
                 <Button variant="outline" size="icon" onClick={copyUrl}>
                   {urlCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -166,7 +166,7 @@ export function ShareView({ share }: ShareViewProps) {
             </div>
 
             {/* Embed Code */}
-            {!share.burn_after_read && (
+            {!paste.burn_after_read && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-foreground flex items-center gap-2">
                   <ExternalLink className="h-4 w-4" />
@@ -183,16 +183,16 @@ export function ShareView({ share }: ShareViewProps) {
               </div>
             )}
 
-            {share.expires_at && (
+            {paste.expires_at && (
               <p className="text-xs text-muted-foreground">
-                Expires: {formatDate(share.expires_at)}
+                Expires: {formatDate(paste.expires_at)}
               </p>
             )}
           </div>
 
           <div className="p-4 bg-foreground rounded-lg">
             <QRCodeSVG
-              value={shareUrl}
+              value={pasteUrl}
               size={100}
               bgColor="hsl(210, 20%, 95%)"
               fgColor="hsl(220, 20%, 10%)"

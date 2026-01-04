@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -16,9 +15,10 @@ import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getExpirationDate, hashPassword } f
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Share2, Loader2, Lock, Flame, Eye, EyeOff, Copy, Check, ExternalLink } from 'lucide-react';
+import { Share2, Loader2, Lock, Flame, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { LiveCodeEditor } from '@/components/editor/LiveCodeEditor';
 
-export function CreateShareForm() {
+export function CreatePasteForm() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [syntax, setSyntax] = useState('plaintext');
@@ -27,7 +27,7 @@ export function CreateShareForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [burnAfterRead, setBurnAfterRead] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [createdShareUrl, setCreatedShareUrl] = useState<string | null>(null);
+  const [createdPasteUrl, setCreatedPasteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -36,7 +36,7 @@ export function CreateShareForm() {
     e.preventDefault();
 
     if (!content.trim()) {
-      toast.error('Please enter some content to share');
+      toast.error('Please enter some content to paste');
       return;
     }
 
@@ -67,29 +67,29 @@ export function CreateShareForm() {
       if (burnAfterRead) features.push('burn after reading');
 
       const message = features.length > 0
-        ? `Share created (${features.join(', ')})!`
-        : 'Share created successfully!';
+        ? `Paste created (${features.join(', ')})!`
+        : 'Paste created successfully!';
 
       toast.success(message);
 
       // For burn-after-read shares, show the link instead of navigating
       // This prevents the creator from consuming the one-time view
       if (burnAfterRead) {
-        setCreatedShareUrl(`${window.location.origin}/s/${data.id}`);
+        setCreatedPasteUrl(`${window.location.origin}/p/${data.id}`);
       } else {
-        navigate(`/s/${data.id}`);
+        navigate(`/p/${data.id}`);
       }
     } catch (error) {
-      console.error('Error creating share:', error);
-      toast.error('Failed to create share. Please try again.');
+      console.error('Error creating paste:', error);
+      toast.error('Failed to create paste. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const copyShareUrl = async () => {
-    if (createdShareUrl) {
-      await navigator.clipboard.writeText(createdShareUrl);
+  const copyPasteUrl = async () => {
+    if (createdPasteUrl) {
+      await navigator.clipboard.writeText(createdPasteUrl);
       setCopied(true);
       toast.success('Link copied to clipboard!');
       setTimeout(() => setCopied(false), 2000);
@@ -103,12 +103,12 @@ export function CreateShareForm() {
     setExpiration('never');
     setPassword('');
     setBurnAfterRead(false);
-    setCreatedShareUrl(null);
+    setCreatedPasteUrl(null);
     setCopied(false);
   };
 
-  // Show success screen for burn-after-read shares
-  if (createdShareUrl) {
+  // Show success screen for burn-after-read pastes
+  if (createdPasteUrl) {
     return (
       <div className="space-y-6 text-center py-4">
         <div className="mx-auto p-4 rounded-full bg-orange-500/10 w-fit">
@@ -116,21 +116,21 @@ export function CreateShareForm() {
         </div>
 
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold">Burn Link Created!</h2>
+          <h2 className="text-2xl font-bold">Burn Paste Created!</h2>
           <p className="text-muted-foreground">
             This link will self-destruct after being viewed once.
           </p>
         </div>
 
         <div className="p-4 bg-secondary rounded-lg border border-border">
-          <p className="text-sm text-muted-foreground mb-2">Share this link:</p>
+          <p className="text-sm text-muted-foreground mb-2">Share this paste:</p>
           <div className="flex items-center gap-2">
             <Input
-              value={createdShareUrl}
+              value={createdPasteUrl}
               readOnly
               className="font-mono text-sm bg-background"
             />
-            <Button onClick={copyShareUrl} variant="outline" className="shrink-0 gap-2">
+            <Button onClick={copyPasteUrl} variant="outline" className="shrink-0 gap-2">
               {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               {copied ? 'Copied!' : 'Copy'}
             </Button>
@@ -144,7 +144,7 @@ export function CreateShareForm() {
 
         <Button onClick={resetForm} variant="outline" className="gap-2">
           <Share2 className="h-4 w-4" />
-          Create Another Share
+          Create Another Paste
         </Button>
       </div>
     );
@@ -161,11 +161,12 @@ export function CreateShareForm() {
           maxLength={100}
         />
 
-        <Textarea
-          placeholder="Paste your text or code here..."
+        <LiveCodeEditor
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          className="min-h-[180px] bg-secondary border-border font-mono text-sm resize-y"
+          onChange={setContent}
+          language={syntax}
+          placeholder="Paste your text or code here..."
+          minHeight="180px"
           maxLength={100000}
         />
       </div>
@@ -257,14 +258,14 @@ export function CreateShareForm() {
           ) : (
             <Share2 className="h-4 w-4" />
           )}
-          Create Share
+          Create Paste
         </Button>
       </div>
 
       {burnAfterRead && (
         <p className="text-sm text-orange-500 flex items-center gap-2">
           <Flame className="h-4 w-4" />
-          This share will be permanently deleted after it's viewed once.
+          This paste will be permanently deleted after it's viewed once.
         </p>
       )}
     </form>

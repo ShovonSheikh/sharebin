@@ -1,8 +1,20 @@
 {
     "rewrites": [
         {
-            "source": "/api/v1/:path*",
-            "destination": "https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/:path*"
+            "source": "/api/v1/create",
+            "destination": "https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/api-pastes"
+        },
+        {
+            "source": "/api/v1/get",
+            "destination": "https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/api-pastes"
+        },
+        {
+            "source": "/api/v1/list",
+            "destination": "https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/api-pastes"
+        },
+        {
+            "source": "/api/v1/delete",
+            "destination": "https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/api-pastes"
         },
         {
             "source": "/((?!assets/).*)",

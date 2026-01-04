@@ -3,12 +3,12 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CodeBlock } from '@/components/share/CodeBlock';
+import { CodeBlock } from '@/components/paste/CodeBlock';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Loader2, FileX, Lock, ExternalLink } from 'lucide-react';
 
-interface Share {
+interface Paste {
   id: string;
   content: string;
   title: string | null;
@@ -16,19 +16,19 @@ interface Share {
   password_hash: string | null;
 }
 
-export default function EmbedShare() {
+export default function EmbedPaste() {
   const { id } = useParams<{ id: string }>();
-  const [share, setShare] = useState<Share | null>(null);
+  const [paste, setPaste] = useState<Paste | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
-      fetchShare();
+      fetchPaste();
     }
   }, [id]);
 
-  const fetchShare = async () => {
+  const fetchPaste = async () => {
     try {
       const { data, error: fetchError } = await supabase
         .from('shares')
@@ -39,13 +39,13 @@ export default function EmbedShare() {
       if (fetchError) throw fetchError;
 
       if (!data) {
-        setError('Share not found');
+        setError('Paste not found');
         return;
       }
 
       // Check if expired
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setError('This share has expired');
+        setError('This paste has expired');
         return;
       }
 
@@ -56,14 +56,14 @@ export default function EmbedShare() {
       }
 
       if (data.burn_after_read) {
-        setError('Cannot embed burn-after-read shares');
+        setError('Cannot embed burn-after-read pastes');
         return;
       }
 
-      setShare(data);
+      setPaste(data);
     } catch (err) {
-      console.error('Error fetching share:', err);
-      setError('Failed to load share');
+      console.error('Error fetching paste:', err);
+      setError('Failed to load paste');
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function EmbedShare() {
             This share is password protected.
           </p>
           <a
-            href={`${window.location.origin}/s/${id}`}
+            href={`${window.location.origin}/p/${id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-primary hover:underline text-sm mt-2 inline-flex items-center gap-1"
@@ -99,13 +99,13 @@ export default function EmbedShare() {
     );
   }
 
-  if (error || !share) {
+  if (error || !paste) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="p-6 text-center bg-card border-border max-w-sm">
           <FileX className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
           <p className="text-muted-foreground text-sm">
-            {error || 'Share not found'}
+            {error || 'Paste not found'}
           </p>
         </Card>
       </div>
@@ -117,17 +117,17 @@ export default function EmbedShare() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2 px-2">
         <div className="flex items-center gap-2">
-          {share.title && (
+          {paste.title && (
             <span className="font-medium text-sm text-foreground truncate max-w-[200px]">
-              {share.title}
+              {paste.title}
             </span>
           )}
           <Badge variant="secondary" className="font-mono text-xs">
-            {share.syntax}
+            {paste.syntax}
           </Badge>
         </div>
         <a
-          href={`${window.location.origin}/s/${share.id}`}
+          href={`${window.location.origin}/p/${paste.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
@@ -138,18 +138,18 @@ export default function EmbedShare() {
       </div>
 
       {/* Content */}
-      {share.syntax === 'markdown' ? (
+      {paste.syntax === 'markdown' ? (
         <Card className="bg-[#282c34] border-[#3e4451] overflow-hidden">
           <div className="p-4 prose prose-invert prose-sm max-w-none overflow-auto max-h-[350px]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {share.content}
+              {paste.content}
             </ReactMarkdown>
           </div>
         </Card>
       ) : (
         <CodeBlock
-          content={share.content}
-          syntax={share.syntax}
+          content={paste.content}
+          syntax={paste.syntax}
           showLineNumbers={true}
           maxHeight="350px"
         />

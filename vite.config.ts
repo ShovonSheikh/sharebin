@@ -10,9 +10,14 @@ export default defineConfig(({ mode }) => ({
     port: 8081,
     proxy: {
       '/api/v1': {
-        target: 'https://geqluvulkhroxvagpjdo.supabase.co/functions/v1',
+        target: 'https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/api-pastes',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1/, ''),
+        rewrite: (path) => {
+          // Convert /api/v1/create -> ?action=create, etc.
+          const action = path.replace('/api/v1/', '');
+          // Keep query params if present
+          return action.includes('?') ? action.substring(action.indexOf('?')) : '';
+        },
         secure: true,
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {

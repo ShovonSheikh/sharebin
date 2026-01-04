@@ -1,5 +1,5 @@
 import { Layout } from '@/components/layout/Layout';
-import { CreateShareForm } from '@/components/share/CreateShareForm';
+import { CreatePasteForm } from '@/components/paste/CreatePasteForm';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Zap, Clock, Code, FileText, QrCode, Globe } from 'lucide-react';
@@ -15,17 +15,17 @@ const Index = () => {
               Free & Open Source
             </Badge>
             <h1 className="text-3xl lg:text-5xl font-bold text-foreground">
-              Share Text <span className="text-gradient">Instantly</span>
+              Paste Text <span className="text-gradient">Instantly</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Paste your text or code below to generate a shareable link.
-              The fastest way to share snippets online.
+              Paste your text or code below to generate a link.
+              The fastest way to paste snippets online.
             </p>
           </div>
 
           {/* Create Form */}
           <Card className="max-w-4xl mx-auto p-4 lg:p-6 bg-card border-border animate-fade-in">
-            <CreateShareForm />
+            <CreatePasteForm />
           </Card>
         </div>
       </section>

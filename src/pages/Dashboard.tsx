@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ApiKeyManager } from '@/components/dashboard/ApiKeyManager';
-import { UserShares } from '@/components/dashboard/UserShares';
+import { UserPastes } from '@/components/dashboard/UserPastes';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { Plus, Loader2 } from 'lucide-react';
@@ -56,7 +56,7 @@ export default function Dashboard() {
           <ApiKeyManager />
 
           {/* Shares Section */}
-          <UserShares />
+          <UserPastes />
         </div>
       </div>
     </Layout>

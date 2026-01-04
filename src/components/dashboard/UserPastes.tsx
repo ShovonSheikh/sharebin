@@ -20,7 +20,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-interface Share {
+interface Paste {
   id: string;
   title: string | null;
   content: string;
@@ -30,19 +30,19 @@ interface Share {
   views: number;
 }
 
-export function UserShares() {
-  const [shares, setShares] = useState<Share[]>([]);
+export function UserPastes() {
+  const [pastes, setPastes] = useState<Paste[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     if (user) {
-      fetchShares();
+      fetchPastes();
     }
   }, [user]);
 
-  const fetchShares = async () => {
+  const fetchPastes = async () => {
     try {
       const { data, error } = await supabase
         .from('shares')
@@ -51,30 +51,30 @@ export function UserShares() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setShares(data || []);
+      setPastes(data || []);
     } catch (error) {
-      console.error('Error fetching shares:', error);
-      toast.error('Failed to load shares');
+      console.error('Error fetching pastes:', error);
+      toast.error('Failed to load pastes');
     } finally {
       setLoading(false);
     }
   };
 
-  const deleteShare = async (shareId: string) => {
-    setDeleting(shareId);
+  const deletePaste = async (pasteId: string) => {
+    setDeleting(pasteId);
     try {
       const { error } = await supabase
         .from('shares')
         .delete()
-        .eq('id', shareId);
+        .eq('id', pasteId);
 
       if (error) throw error;
 
-      setShares(shares.filter(s => s.id !== shareId));
-      toast.success('Share deleted');
+      setPastes(pastes.filter(p => p.id !== pasteId));
+      toast.success('Paste deleted');
     } catch (error) {
-      console.error('Error deleting share:', error);
-      toast.error('Failed to delete share');
+      console.error('Error deleting paste:', error);
+      toast.error('Failed to delete paste');
     } finally {
       setDeleting(null);
     }
@@ -96,69 +96,69 @@ export function UserShares() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5 text-primary" />
-          Your Shares
+          Your Pastes
         </CardTitle>
         <CardDescription>
-          Manage your created text shares.
+          Manage your created text pastes.
         </CardDescription>
       </CardHeader>
       <CardContent>
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
-            Loading shares...
+            Loading pastes...
           </div>
-        ) : shares.length === 0 ? (
+        ) : pastes.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No shares yet.</p>
+            <p>No pastes yet.</p>
             <Link to="/">
               <Button variant="outline" className="mt-4">
-                Create Your First Share
+                Create Your First Paste
               </Button>
             </Link>
           </div>
         ) : (
           <div className="space-y-3">
-            {shares.map((share) => (
+            {pastes.map((paste) => (
               <div
-                key={share.id}
+                key={paste.id}
                 className="flex items-start justify-between p-4 bg-secondary rounded-lg gap-4"
               >
                 <div className="flex-1 min-w-0 space-y-2">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-medium truncate">
-                      {share.title || `Share ${share.id}`}
+                      {paste.title || `Paste ${paste.id}`}
                     </span>
                     <Badge variant="outline" className="font-mono text-xs">
-                      {share.syntax}
+                      {paste.syntax}
                     </Badge>
-                    {isExpired(share.expires_at) && (
+                    {isExpired(paste.expires_at) && (
                       <Badge variant="destructive">Expired</Badge>
                     )}
                   </div>
                   <p className="text-sm text-muted-foreground font-mono truncate">
-                    {getPreview(share.content)}
+                    {getPreview(paste.content)}
                   </p>
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Eye className="h-3 w-3" />
-                      {share.views} views
+                      {paste.views} views
                     </span>
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatDate(share.created_at)}
+                      {formatDate(paste.created_at)}
                     </span>
-                    {share.expires_at && (
+                    {paste.expires_at && (
                       <span>
-                        Expires: {formatDate(share.expires_at)}
+                        Expires: {formatDate(paste.expires_at)}
                       </span>
                     )}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Link to={`/s/${share.id}`}>
+                  <Link to={`/p/${paste.id}`}>
                     <Button variant="ghost" size="icon">
                       <ExternalLink className="h-4 w-4" />
                     </Button>
@@ -170,9 +170,9 @@ export function UserShares() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive"
-                        disabled={deleting === share.id}
+                        disabled={deleting === paste.id}
                       >
-                        {deleting === share.id ? (
+                        {deleting === paste.id ? (
                           <Loader2 className="h-4 w-4 animate-spin" />
                         ) : (
                           <Trash2 className="h-4 w-4" />
@@ -181,14 +181,14 @@ export function UserShares() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Share?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete Paste?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete this share. Anyone with the link will no longer be able to access it.
+                          This will permanently delete this paste. Anyone with the link will no longer be able to access it.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => deleteShare(share.id)}>
+                        <AlertDialogAction onClick={() => deletePaste(paste.id)}>
                           Delete
                         </AlertDialogAction>
                       </AlertDialogFooter>

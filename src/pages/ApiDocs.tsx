@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import {
 import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getApiBaseUrl } from '@/lib/constants';
 import { toast } from 'sonner';
 import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List, Lock, Flame } from 'lucide-react';
+import { generateCurl, generateFetch } from '@/lib/curlGenerator';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -29,7 +30,7 @@ export default function ApiDocs() {
             <Badge variant="secondary">API v1</Badge>
             <h1 className="text-4xl font-bold">Pastely API Documentation</h1>
             <p className="text-xl text-muted-foreground">
-              Programmatically create, read, and manage text shares.
+              Programmatically create, read, and manage text pastes.
             </p>
           </div>
 
@@ -60,36 +61,36 @@ export default function ApiDocs() {
             <TabsList className="bg-secondary flex-wrap h-auto gap-2 p-2">
               <TabsTrigger value="create" className="gap-2">
                 <FileText className="h-4 w-4" />
-                Create Share
+                Create Paste
               </TabsTrigger>
               <TabsTrigger value="get" className="gap-2">
                 <FileText className="h-4 w-4" />
-                Get Share
+                Get Paste
               </TabsTrigger>
               <TabsTrigger value="list" className="gap-2">
                 <List className="h-4 w-4" />
-                List Shares
+                List Pastes
               </TabsTrigger>
               <TabsTrigger value="delete" className="gap-2">
                 <Trash2 className="h-4 w-4" />
-                Delete Share
+                Delete Paste
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="create">
-              <CreateShareEndpoint />
+              <CreatePasteEndpoint />
             </TabsContent>
 
             <TabsContent value="get">
-              <GetShareEndpoint />
+              <GetPasteEndpoint />
             </TabsContent>
 
             <TabsContent value="list">
-              <ListSharesEndpoint />
+              <ListPastesEndpoint />
             </TabsContent>
 
             <TabsContent value="delete">
-              <DeleteShareEndpoint />
+              <DeletePasteEndpoint />
             </TabsContent>
           </Tabs>
         </div>
@@ -98,7 +99,7 @@ export default function ApiDocs() {
   );
 }
 
-function CreateShareEndpoint() {
+function CreatePasteEndpoint() {
   const [apiKey, setApiKey] = useState('');
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
@@ -119,7 +120,7 @@ function CreateShareEndpoint() {
     setResponse(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api-shares`, {
+      const res = await fetch(`${API_BASE_URL}/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,11 +145,41 @@ function CreateShareEndpoint() {
     }
   };
 
+  // Generate cURL command reactively based on form state
+  const curlCommand = useMemo(() => generateCurl({
+    method: 'POST',
+    url: `${window.location.origin}${API_BASE_URL}/create`,
+    apiKey: apiKey || 'YOUR_API_KEY',
+    body: {
+      content: content || 'Hello World',
+      title: title || undefined,
+      syntax,
+      expiration,
+      password: password || undefined,
+      burn_after_read: burnAfterRead || undefined,
+    }
+  }), [apiKey, content, title, syntax, expiration, password, burnAfterRead]);
+
+  // Generate JavaScript fetch code reactively
+  const jsCommand = useMemo(() => generateFetch({
+    method: 'POST',
+    url: `${window.location.origin}${API_BASE_URL}/create`,
+    apiKey: apiKey || 'YOUR_API_KEY',
+    body: {
+      content: content || 'Hello World',
+      title: title || undefined,
+      syntax,
+      expiration,
+      password: password || undefined,
+      burn_after_read: burnAfterRead || undefined,
+    }
+  }), [apiKey, content, title, syntax, expiration, password, burnAfterRead]);
+
   return (
     <EndpointCard
       method="POST"
-      path="/api-shares"
-      description="Create a new text share."
+      path="/create"
+      description="Create a new text paste."
     >
       <div className="grid gap-4">
         <div className="space-y-2">
@@ -250,46 +281,28 @@ function CreateShareEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <CodeExamples
-          curl={`curl -X POST "${API_BASE_URL}/api-shares" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-    "content": "Hello World",
-    "syntax": "plaintext",
-    "password": "optional-password",
-    "burn_after_read": false
-  }'`}
-          javascript={`const response = await fetch("${API_BASE_URL}/api-shares", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-    "Authorization": "Bearer YOUR_API_KEY"
-  },
-  body: JSON.stringify({
-    content: "Hello World",
-    syntax: "plaintext",
-    password: "optional-password",   // protects with password
-    burn_after_read: true            // deletes after viewing
-  })
-});
-
-const data = await response.json();
-console.log(data.url);`}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Live Examples</label>
+            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
+              Updates as you type
+            </Badge>
+          </div>
+          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+        </div>
       </div>
     </EndpointCard>
   );
 }
 
-function GetShareEndpoint() {
-  const [shareId, setShareId] = useState('');
+function GetPasteEndpoint() {
+  const [pasteId, setPasteId] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
 
   const handleTry = async () => {
-    if (!shareId.trim()) {
-      toast.error('Share ID is required');
+    if (!pasteId.trim()) {
+      toast.error('Paste ID is required');
       return;
     }
 
@@ -297,7 +310,7 @@ function GetShareEndpoint() {
     setResponse(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api-shares?id=${shareId}`, {
+      const res = await fetch(`${API_BASE_URL}/get?id=${pasteId}`, {
         method: 'GET',
       });
 
@@ -313,16 +326,16 @@ function GetShareEndpoint() {
   return (
     <EndpointCard
       method="GET"
-      path="/api-shares?id={share_id}"
-      description="Retrieve a share by its ID."
+      path="/get?id={paste_id}"
+      description="Retrieve a paste by its ID."
     >
       <div className="grid gap-4">
         <div className="space-y-2">
-          <label className="text-sm font-medium">Share ID *</label>
+          <label className="text-sm font-medium">Paste ID *</label>
           <Input
             placeholder="abc12345"
-            value={shareId}
-            onChange={(e) => setShareId(e.target.value)}
+            value={pasteId}
+            onChange={(e) => setPasteId(e.target.value)}
             className="bg-secondary font-mono"
           />
         </div>
@@ -335,17 +348,17 @@ function GetShareEndpoint() {
         {response && <ResponseBlock response={response} />}
 
         <CodeExamples
-          curl={`curl "${API_BASE_URL}/api-shares?id=abc12345"`}
-          javascript={`const response = await fetch("${API_BASE_URL}/api-shares?id=abc12345");
+          curl={`curl "${API_BASE_URL}/get?id=abc12345"`}
+          javascript={`const response = await fetch("${API_BASE_URL}/get?id=abc12345");
 const data = await response.json();
-console.log(data.content);`}
+console.log(data.paste_content);`}
         />
       </div>
     </EndpointCard>
   );
 }
 
-function ListSharesEndpoint() {
+function ListPastesEndpoint() {
   const [apiKey, setApiKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
@@ -360,7 +373,7 @@ function ListSharesEndpoint() {
     setResponse(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api-shares`, {
+      const res = await fetch(`${API_BASE_URL}/list`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -379,8 +392,8 @@ function ListSharesEndpoint() {
   return (
     <EndpointCard
       method="GET"
-      path="/api-shares"
-      description="List all shares for the authenticated user."
+      path="/list"
+      description="List all pastes for the authenticated user."
     >
       <div className="grid gap-4">
         <div className="space-y-2">
@@ -401,31 +414,31 @@ function ListSharesEndpoint() {
         {response && <ResponseBlock response={response} />}
 
         <CodeExamples
-          curl={`curl "${API_BASE_URL}/api-shares" \\
+          curl={`curl "${API_BASE_URL}/list" \\
   -H "Authorization: Bearer YOUR_API_KEY"`}
-          javascript={`const response = await fetch("${API_BASE_URL}/api-shares", {
+          javascript={`const response = await fetch("${API_BASE_URL}/list", {
   headers: {
     "Authorization": "Bearer YOUR_API_KEY"
   }
 });
 
 const data = await response.json();
-console.log(data.shares);`}
+console.log(data.pastes);`}
         />
       </div>
     </EndpointCard>
   );
 }
 
-function DeleteShareEndpoint() {
+function DeletePasteEndpoint() {
   const [apiKey, setApiKey] = useState('');
-  const [shareId, setShareId] = useState('');
+  const [pasteId, setPasteId] = useState('');
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
 
   const handleTry = async () => {
-    if (!apiKey.trim() || !shareId.trim()) {
-      toast.error('API Key and Share ID are required');
+    if (!apiKey.trim() || !pasteId.trim()) {
+      toast.error('API Key and Paste ID are required');
       return;
     }
 
@@ -433,7 +446,7 @@ function DeleteShareEndpoint() {
     setResponse(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api-shares?id=${shareId}`, {
+      const res = await fetch(`${API_BASE_URL}/delete?id=${pasteId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${apiKey}`,
@@ -452,8 +465,8 @@ function DeleteShareEndpoint() {
   return (
     <EndpointCard
       method="DELETE"
-      path="/api-shares?id={share_id}"
-      description="Delete a share. You must be the owner."
+      path="/delete?id={paste_id}"
+      description="Delete a paste. You must be the owner."
     >
       <div className="grid gap-4">
         <div className="space-y-2">
@@ -467,11 +480,11 @@ function DeleteShareEndpoint() {
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Share ID *</label>
+          <label className="text-sm font-medium">Paste ID *</label>
           <Input
             placeholder="abc12345"
-            value={shareId}
-            onChange={(e) => setShareId(e.target.value)}
+            value={pasteId}
+            onChange={(e) => setPasteId(e.target.value)}
             className="bg-secondary font-mono"
           />
         </div>
@@ -484,9 +497,9 @@ function DeleteShareEndpoint() {
         {response && <ResponseBlock response={response} />}
 
         <CodeExamples
-          curl={`curl -X DELETE "${API_BASE_URL}/api-shares?id=abc12345" \\
+          curl={`curl -X DELETE "${API_BASE_URL}/delete?id=abc12345" \\
   -H "Authorization: Bearer YOUR_API_KEY"`}
-          javascript={`const response = await fetch("${API_BASE_URL}/api-shares?id=abc12345", {
+          javascript={`const response = await fetch("${API_BASE_URL}/delete?id=abc12345", {
   method: "DELETE",
   headers: {
     "Authorization": "Bearer YOUR_API_KEY"

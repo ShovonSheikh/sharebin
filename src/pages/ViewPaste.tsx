@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { ShareView } from '@/components/share/ShareView';
-import { PasswordModal } from '@/components/share/PasswordModal';
+import { PasteView } from '@/components/paste/PasteView';
+import { PasswordModal } from '@/components/paste/PasswordModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +10,7 @@ import { hashPassword, SUPABASE_FUNCTIONS_URL } from '@/lib/constants';
 import { Loader2, FileX, Home, Flame } from 'lucide-react';
 import { toast } from 'sonner';
 
-interface Share {
+interface Paste {
   id: string;
   content: string;
   title: string | null;
@@ -22,7 +22,7 @@ interface Share {
   burned?: boolean;
 }
 
-interface ProtectedShareMeta {
+interface ProtectedPasteMeta {
   id: string;
   title: string | null;
   syntax: string;
@@ -32,31 +32,31 @@ interface ProtectedShareMeta {
   burn_after_read?: boolean;
 }
 
-export default function ViewShare() {
+export default function ViewPaste() {
   const { id } = useParams<{ id: string }>();
-  const [share, setShare] = useState<Share | null>(null);
-  const [protectedMeta, setProtectedMeta] = useState<ProtectedShareMeta | null>(null);
+  const [paste, setPaste] = useState<Paste | null>(null);
+  const [protectedMeta, setProtectedMeta] = useState<ProtectedPasteMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
-      // Check session storage for already unlocked shares
-      const unlockedData = sessionStorage.getItem(`share_${id}`);
+      // Check session storage for already unlocked pastes
+      const unlockedData = sessionStorage.getItem(`paste_${id}`);
       if (unlockedData) {
         try {
-          setShare(JSON.parse(unlockedData));
+          setPaste(JSON.parse(unlockedData));
           setLoading(false);
           return;
         } catch {
-          sessionStorage.removeItem(`share_${id}`);
+          sessionStorage.removeItem(`paste_${id}`);
         }
       }
-      fetchShare();
+      fetchPaste();
     }
   }, [id]);
 
-  const fetchShare = async () => {
+  const fetchPaste = async () => {
     try {
       // First try direct fetch for unprotected shares
       const { data, error: fetchError } = await supabase
@@ -68,14 +68,14 @@ export default function ViewShare() {
       if (fetchError) throw fetchError;
 
       if (!data) {
-        setError('Share not found');
+        setError('Paste not found');
         return;
       }
 
       // Check if expired
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setError('This share has expired');
-        toast.error('This share has expired');
+        setError('This paste has expired');
+        toast.error('This paste has expired');
         return;
       }
 
@@ -95,11 +95,11 @@ export default function ViewShare() {
 
       // Handle burn after read
       if (data.burn_after_read) {
-        // Delete the share after fetching
+        // Delete the paste after fetching
         await supabase.from('shares').delete().eq('id', id);
-        setShare({ ...data, burned: true });
+        setPaste({ ...data, burned: true });
       } else {
-        setShare(data);
+        setPaste(data);
         // Increment view count
         await supabase
           .from('shares')
@@ -107,9 +107,9 @@ export default function ViewShare() {
           .eq('id', id);
       }
     } catch (err) {
-      console.error('Error fetching share:', err);
-      setError('Failed to load share');
-      toast.error('Failed to load share. Please try again.');
+      console.error('Error fetching paste:', err);
+      setError('Failed to load paste');
+      toast.error('Failed to load paste. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,7 @@ export default function ViewShare() {
   const handlePasswordSubmit = async (password: string): Promise<boolean> => {
     try {
       const response = await fetch(
-        `${SUPABASE_FUNCTIONS_URL}/api-shares?id=${id}&verify=true`,
+        `${SUPABASE_FUNCTIONS_URL}/api-pastes?id=${id}&verify=true`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -134,10 +134,10 @@ export default function ViewShare() {
 
       // Store in session for subsequent access
       if (!data.burned) {
-        sessionStorage.setItem(`share_${id}`, JSON.stringify(data));
+        sessionStorage.setItem(`paste_${id}`, JSON.stringify(data));
       }
 
-      setShare(data);
+      setPaste(data);
       setProtectedMeta(null);
       return true;
     } catch (err) {
@@ -152,14 +152,14 @@ export default function ViewShare() {
         <div className="container mx-auto px-4 py-20">
           <div className="flex flex-col items-center justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-            <p className="text-muted-foreground">Loading share...</p>
+            <p className="text-muted-foreground">Loading paste...</p>
           </div>
         </div>
       </Layout>
     );
   }
 
-  // Show password modal for protected shares
+  // Show password modal for protected pastes
   if (protectedMeta) {
     return (
       <Layout>
@@ -172,15 +172,15 @@ export default function ViewShare() {
     );
   }
 
-  if (error || !share) {
+  if (error || !paste) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-20">
           <Card className="max-w-md mx-auto p-8 text-center bg-card border-border">
             <FileX className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Share Not Found</h1>
+            <h1 className="text-2xl font-bold mb-2">Paste Not Found</h1>
             <p className="text-muted-foreground mb-6">
-              {error || 'This share may have been deleted or expired.'}
+              {error || 'This paste may have been deleted or expired.'}
             </p>
             <Link to="/">
               <Button className="gap-2">
@@ -198,7 +198,7 @@ export default function ViewShare() {
     <Layout>
       <div className="container mx-auto px-4 py-8 lg:py-12">
         <div className="max-w-4xl mx-auto">
-          <ShareView share={share} />
+          <PasteView paste={paste} />
         </div>
       </div>
     </Layout>
