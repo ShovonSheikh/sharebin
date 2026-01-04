@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Plus, Clock, Eye, Code, FileText } from 'lucide-react';
+import { Copy, Check, Plus, Clock, Eye, Code, FileText, Lock, Flame, ExternalLink } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -21,6 +21,8 @@ interface Share {
   expires_at: string | null;
   created_at: string;
   views: number;
+  burn_after_read?: boolean;
+  burned?: boolean;
 }
 
 interface ShareViewProps {
@@ -30,11 +32,14 @@ interface ShareViewProps {
 export function ShareView({ share }: ShareViewProps) {
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
+  const [embedCopied, setEmbedCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<string>(
     share.syntax === 'markdown' ? 'rendered' : 'code'
   );
 
   const shareUrl = `${window.location.origin}/s/${share.id}`;
+  const embedUrl = `${window.location.origin}/embed/${share.id}`;
+  const embedCode = `<iframe src="${embedUrl}" width="100%" height="400" frameborder="0" style="border-radius: 8px; border: 1px solid #333;"></iframe>`;
 
   useEffect(() => {
     if (activeTab === 'code') {
@@ -58,18 +63,46 @@ export function ShareView({ share }: ShareViewProps) {
     setTimeout(() => setUrlCopied(false), 2000);
   };
 
+  const copyEmbed = async () => {
+    await navigator.clipboard.writeText(embedCode);
+    setEmbedCopied(true);
+    toast.success('Embed code copied to clipboard');
+    setTimeout(() => setEmbedCopied(false), 2000);
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Burn Warning */}
+      {share.burned && (
+        <Card className="p-4 bg-orange-500/10 border-orange-500/20">
+          <div className="flex items-center gap-3 text-orange-500">
+            <Flame className="h-5 w-5" />
+            <div>
+              <p className="font-medium">This share has been burned</p>
+              <p className="text-sm opacity-80">
+                This content was set to delete after reading. Save it now if you need it.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div className="space-y-1">
           {share.title && (
             <h1 className="text-2xl font-bold text-foreground">{share.title}</h1>
           )}
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <Badge variant="secondary" className="font-mono">
               {share.syntax}
             </Badge>
+            {share.burn_after_read && (
+              <Badge variant="outline" className="text-orange-500 border-orange-500/50">
+                <Flame className="h-3 w-3 mr-1" />
+                Burn after read
+              </Badge>
+            )}
             <span className="flex items-center gap-1">
               <Eye className="h-3 w-3" />
               {share.views} views
@@ -128,16 +161,37 @@ export function ShareView({ share }: ShareViewProps) {
       {/* Share URL & QR Code */}
       <Card className="p-6 bg-card border-border">
         <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
-          <div className="space-y-2 flex-1">
-            <p className="text-sm font-medium text-foreground">Share URL</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 bg-secondary px-4 py-2 rounded-md font-mono text-sm text-primary break-all">
-                {shareUrl}
-              </code>
-              <Button variant="outline" size="icon" onClick={copyUrl}>
-                {urlCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              </Button>
+          <div className="space-y-4 flex-1">
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">Share URL</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-secondary px-4 py-2 rounded-md font-mono text-sm text-primary break-all">
+                  {shareUrl}
+                </code>
+                <Button variant="outline" size="icon" onClick={copyUrl}>
+                  {urlCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </Button>
+              </div>
             </div>
+
+            {/* Embed Code */}
+            {!share.burn_after_read && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Embed Code
+                </p>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-secondary px-4 py-2 rounded-md font-mono text-xs text-muted-foreground break-all line-clamp-1">
+                    {embedCode}
+                  </code>
+                  <Button variant="outline" size="icon" onClick={copyEmbed}>
+                    {embedCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {share.expires_at && (
               <p className="text-xs text-muted-foreground">
                 Expires: {formatDate(share.expires_at)}

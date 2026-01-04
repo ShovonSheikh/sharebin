@@ -75,3 +75,20 @@ export async function hashApiKey(key: string): Promise<string> {
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+export async function hashPassword(password: string): Promise<string> {
+  return hashApiKey(password);
+}
+
+// API configuration
+export function getApiBaseUrl(): string {
+  // In production, use the site URL with /api prefix
+  // The proxy handles routing to the edge function
+  if (import.meta.env.PROD) {
+    return `${window.location.origin}/api`;
+  }
+  // In development, use the proxy
+  return '/api';
+}
+
+export const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
