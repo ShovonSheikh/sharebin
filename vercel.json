@@ -3,6 +3,10 @@
         {
             "source": "/api/v1/:path*",
             "destination": "https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/:path*"
+        },
+        {
+            "source": "/((?!assets/).*)",
+            "destination": "/index.html"
         }
     ]
 }

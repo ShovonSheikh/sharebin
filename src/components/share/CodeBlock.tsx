@@ -66,7 +66,7 @@ export function CodeBlock({
     return (
         <Card
             className={cn(
-                'bg-[#282c34] border-[#3e4451] overflow-hidden relative group',
+                'bg-[#282c34] border-[#3e4451] overflow-hidden relative group w-full',
                 className
             )}
         >
@@ -124,7 +124,7 @@ export function CodeBlock({
                             ref={codeRef}
                             className={cn(
                                 `language-${syntax}`,
-                                'block py-4 px-4 flex-1 overflow-x-auto'
+                                'block py-4 px-4 whitespace-pre'
                             )}
                         >
                             {content}
