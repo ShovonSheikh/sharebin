@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -10,17 +12,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getExpirationDate } from '@/lib/constants';
+import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getExpirationDate, hashPassword } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Share2, Loader2 } from 'lucide-react';
+import { Share2, Loader2, Lock, Flame, Eye, EyeOff } from 'lucide-react';
 
 export function CreateShareForm() {
   const [content, setContent] = useState('');
   const [title, setTitle] = useState('');
   const [syntax, setSyntax] = useState('plaintext');
   const [expiration, setExpiration] = useState('never');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [burnAfterRead, setBurnAfterRead] = useState(false);
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -37,6 +42,7 @@ export function CreateShareForm() {
 
     try {
       const expiresAt = getExpirationDate(expiration);
+      const passwordHash = password ? await hashPassword(password) : null;
       
       const { data, error } = await supabase
         .from('shares')
@@ -46,13 +52,23 @@ export function CreateShareForm() {
           syntax,
           expires_at: expiresAt?.toISOString() || null,
           user_id: user?.id || null,
+          password_hash: passwordHash,
+          burn_after_read: burnAfterRead,
         })
         .select('id')
         .single();
 
       if (error) throw error;
 
-      toast.success('Share created successfully!');
+      const features = [];
+      if (password) features.push('password protected');
+      if (burnAfterRead) features.push('burn after reading');
+      
+      const message = features.length > 0 
+        ? `Share created (${features.join(', ')})!`
+        : 'Share created successfully!';
+      
+      toast.success(message);
       navigate(`/s/${data.id}`);
     } catch (error) {
       console.error('Error creating share:', error);
@@ -80,6 +96,52 @@ export function CreateShareForm() {
           className="min-h-[300px] bg-secondary border-border font-mono text-sm resize-y"
           maxLength={100000}
         />
+      </div>
+
+      {/* Security Options */}
+      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+        <div className="flex-1 space-y-2">
+          <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
+            <Lock className="h-4 w-4 text-primary" />
+            Password Protection
+          </Label>
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="Optional password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-background border-border pr-10"
+              maxLength={100}
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOff className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <Eye className="h-4 w-4 text-muted-foreground" />
+              )}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 sm:pt-6">
+          <Switch
+            id="burn"
+            checked={burnAfterRead}
+            onCheckedChange={setBurnAfterRead}
+          />
+          <Label htmlFor="burn" className="flex items-center gap-2 cursor-pointer">
+            <Flame className="h-4 w-4 text-orange-500" />
+            <span className="text-sm">Burn after reading</span>
+          </Label>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -126,6 +188,13 @@ export function CreateShareForm() {
           Create Share
         </Button>
       </div>
+
+      {burnAfterRead && (
+        <p className="text-sm text-orange-500 flex items-center gap-2">
+          <Flame className="h-4 w-4" />
+          This share will be permanently deleted after it's viewed once.
+        </p>
+      )}
     </form>
   );
 }

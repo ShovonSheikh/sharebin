@@ -13,11 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS } from '@/lib/constants';
+import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getApiBaseUrl } from '@/lib/constants';
 import { toast } from 'sonner';
-import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List } from 'lucide-react';
+import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List, Lock, Flame } from 'lucide-react';
 
-const API_BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
+const API_BASE_URL = getApiBaseUrl();
 
 export default function ApiDocs() {
   return (
@@ -104,6 +104,8 @@ function CreateShareEndpoint() {
   const [title, setTitle] = useState('');
   const [syntax, setSyntax] = useState('plaintext');
   const [expiration, setExpiration] = useState('never');
+  const [password, setPassword] = useState('');
+  const [burnAfterRead, setBurnAfterRead] = useState(false);
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<string | null>(null);
 
@@ -128,6 +130,8 @@ function CreateShareEndpoint() {
           title: title || undefined,
           syntax,
           expiration,
+          password: password || undefined,
+          burn_after_read: burnAfterRead || undefined,
         }),
       });
 
@@ -167,7 +171,7 @@ function CreateShareEndpoint() {
           />
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid sm:grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm font-medium">Title</label>
             <Input
@@ -209,6 +213,34 @@ function CreateShareEndpoint() {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Lock className="h-4 w-4" />
+              Password
+            </label>
+            <Input
+              type="password"
+              placeholder="Optional password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="bg-secondary"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg border border-border">
+          <input
+            type="checkbox"
+            id="burnAfterRead"
+            checked={burnAfterRead}
+            onChange={(e) => setBurnAfterRead(e.target.checked)}
+            className="w-4 h-4"
+          />
+          <label htmlFor="burnAfterRead" className="flex items-center gap-2 text-sm cursor-pointer">
+            <Flame className="h-4 w-4 text-orange-500" />
+            Burn after reading (delete after first view)
+          </label>
         </div>
 
         <Button onClick={handleTry} disabled={loading} className="gap-2">
@@ -222,7 +254,12 @@ function CreateShareEndpoint() {
           curl={`curl -X POST "${API_BASE_URL}/api-shares" \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{"content": "Hello World", "syntax": "plaintext"}'`}
+  -d '{
+    "content": "Hello World",
+    "syntax": "plaintext",
+    "password": "optional-password",
+    "burn_after_read": false
+  }'`}
           javascript={`const response = await fetch("${API_BASE_URL}/api-shares", {
   method: "POST",
   headers: {
@@ -231,7 +268,9 @@ function CreateShareEndpoint() {
   },
   body: JSON.stringify({
     content: "Hello World",
-    syntax: "plaintext"
+    syntax: "plaintext",
+    password: "optional-password",   // protects with password
+    burn_after_read: true            // deletes after viewing
   })
 });
 

@@ -67,30 +67,36 @@ export type Database = {
       }
       shares: {
         Row: {
+          burn_after_read: boolean
           content: string
           created_at: string
           expires_at: string | null
           id: string
+          password_hash: string | null
           syntax: string
           title: string | null
           user_id: string | null
           views: number
         }
         Insert: {
+          burn_after_read?: boolean
           content: string
           created_at?: string
           expires_at?: string | null
           id?: string
+          password_hash?: string | null
           syntax?: string
           title?: string | null
           user_id?: string | null
           views?: number
         }
         Update: {
+          burn_after_read?: boolean
           content?: string
           created_at?: string
           expires_at?: string | null
           id?: string
+          password_hash?: string | null
           syntax?: string
           title?: string | null
           user_id?: string | null

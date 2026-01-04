@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ShareView } from '@/components/share/ShareView';
+import { PasswordModal } from '@/components/share/PasswordModal';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, FileX, Home } from 'lucide-react';
+import { hashPassword, SUPABASE_FUNCTIONS_URL } from '@/lib/constants';
+import { Loader2, FileX, Home, Flame } from 'lucide-react';
 
 interface Share {
   id: string;
@@ -15,23 +17,47 @@ interface Share {
   expires_at: string | null;
   created_at: string;
   views: number;
+  burn_after_read?: boolean;
+  burned?: boolean;
+}
+
+interface ProtectedShareMeta {
+  id: string;
+  title: string | null;
+  syntax: string;
+  expires_at: string | null;
+  created_at: string;
+  protected: boolean;
+  burn_after_read?: boolean;
 }
 
 export default function ViewShare() {
   const { id } = useParams<{ id: string }>();
   const [share, setShare] = useState<Share | null>(null);
+  const [protectedMeta, setProtectedMeta] = useState<ProtectedShareMeta | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
+      // Check session storage for already unlocked shares
+      const unlockedData = sessionStorage.getItem(`share_${id}`);
+      if (unlockedData) {
+        try {
+          setShare(JSON.parse(unlockedData));
+          setLoading(false);
+          return;
+        } catch {
+          sessionStorage.removeItem(`share_${id}`);
+        }
+      }
       fetchShare();
     }
   }, [id]);
 
   const fetchShare = async () => {
     try {
-      // Fetch the share
+      // First try direct fetch for unprotected shares
       const { data, error: fetchError } = await supabase
         .from('shares')
         .select('*')
@@ -51,19 +77,69 @@ export default function ViewShare() {
         return;
       }
 
-      setShare(data);
+      // If password protected, show password modal
+      if (data.password_hash) {
+        setProtectedMeta({
+          id: data.id,
+          title: data.title,
+          syntax: data.syntax,
+          expires_at: data.expires_at,
+          created_at: data.created_at,
+          protected: true,
+          burn_after_read: data.burn_after_read,
+        });
+        return;
+      }
 
-      // Increment view count
-      await supabase
-        .from('shares')
-        .update({ views: (data.views || 0) + 1 })
-        .eq('id', id);
-
+      // Handle burn after read
+      if (data.burn_after_read) {
+        // Delete the share after fetching
+        await supabase.from('shares').delete().eq('id', id);
+        setShare({ ...data, burned: true });
+      } else {
+        setShare(data);
+        // Increment view count
+        await supabase
+          .from('shares')
+          .update({ views: (data.views || 0) + 1 })
+          .eq('id', id);
+      }
     } catch (err) {
       console.error('Error fetching share:', err);
       setError('Failed to load share');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = async (password: string): Promise<boolean> => {
+    try {
+      const response = await fetch(
+        `${SUPABASE_FUNCTIONS_URL}/api-shares?id=${id}&verify=true`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password }),
+        }
+      );
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      
+      // Store in session for subsequent access
+      if (!data.burned) {
+        sessionStorage.setItem(`share_${id}`, JSON.stringify(data));
+      }
+      
+      setShare(data);
+      setProtectedMeta(null);
+      return true;
+    } catch (err) {
+      console.error('Error verifying password:', err);
+      return false;
     }
   };
 
@@ -76,6 +152,19 @@ export default function ViewShare() {
             <p className="text-muted-foreground">Loading share...</p>
           </div>
         </div>
+      </Layout>
+    );
+  }
+
+  // Show password modal for protected shares
+  if (protectedMeta) {
+    return (
+      <Layout>
+        <PasswordModal
+          title={protectedMeta.title}
+          burnAfterRead={protectedMeta.burn_after_read}
+          onSubmit={handlePasswordSubmit}
+        />
       </Layout>
     );
   }

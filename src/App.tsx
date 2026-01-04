@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import ViewShare from "./pages/ViewShare";
+import EmbedShare from "./pages/EmbedShare";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import ApiDocs from "./pages/ApiDocs";
@@ -23,6 +24,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/s/:id" element={<ViewShare />} />
+            <Route path="/embed/:id" element={<EmbedShare />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/docs" element={<ApiDocs />} />
