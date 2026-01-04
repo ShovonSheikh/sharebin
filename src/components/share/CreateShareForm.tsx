@@ -16,7 +16,7 @@ import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getExpirationDate, hashPassword } f
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Share2, Loader2, Lock, Flame, Eye, EyeOff } from 'lucide-react';
+import { Share2, Loader2, Lock, Flame, Eye, EyeOff, Copy, Check, ExternalLink } from 'lucide-react';
 
 export function CreateShareForm() {
   const [content, setContent] = useState('');
@@ -27,12 +27,14 @@ export function CreateShareForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [burnAfterRead, setBurnAfterRead] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [createdShareUrl, setCreatedShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!content.trim()) {
       toast.error('Please enter some content to share');
       return;
@@ -43,7 +45,7 @@ export function CreateShareForm() {
     try {
       const expiresAt = getExpirationDate(expiration);
       const passwordHash = password ? await hashPassword(password) : null;
-      
+
       const { data, error } = await supabase
         .from('shares')
         .insert({
@@ -63,13 +65,20 @@ export function CreateShareForm() {
       const features = [];
       if (password) features.push('password protected');
       if (burnAfterRead) features.push('burn after reading');
-      
-      const message = features.length > 0 
+
+      const message = features.length > 0
         ? `Share created (${features.join(', ')})!`
         : 'Share created successfully!';
-      
+
       toast.success(message);
-      navigate(`/s/${data.id}`);
+
+      // For burn-after-read shares, show the link instead of navigating
+      // This prevents the creator from consuming the one-time view
+      if (burnAfterRead) {
+        setCreatedShareUrl(`${window.location.origin}/s/${data.id}`);
+      } else {
+        navigate(`/s/${data.id}`);
+      }
     } catch (error) {
       console.error('Error creating share:', error);
       toast.error('Failed to create share. Please try again.');
@@ -78,9 +87,72 @@ export function CreateShareForm() {
     }
   };
 
+  const copyShareUrl = async () => {
+    if (createdShareUrl) {
+      await navigator.clipboard.writeText(createdShareUrl);
+      setCopied(true);
+      toast.success('Link copied to clipboard!');
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const resetForm = () => {
+    setContent('');
+    setTitle('');
+    setSyntax('plaintext');
+    setExpiration('never');
+    setPassword('');
+    setBurnAfterRead(false);
+    setCreatedShareUrl(null);
+    setCopied(false);
+  };
+
+  // Show success screen for burn-after-read shares
+  if (createdShareUrl) {
+    return (
+      <div className="space-y-6 text-center py-4">
+        <div className="mx-auto p-4 rounded-full bg-orange-500/10 w-fit">
+          <Flame className="h-12 w-12 text-orange-500" />
+        </div>
+
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold">Burn Link Created!</h2>
+          <p className="text-muted-foreground">
+            This link will self-destruct after being viewed once.
+          </p>
+        </div>
+
+        <div className="p-4 bg-secondary rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground mb-2">Share this link:</p>
+          <div className="flex items-center gap-2">
+            <Input
+              value={createdShareUrl}
+              readOnly
+              className="font-mono text-sm bg-background"
+            />
+            <Button onClick={copyShareUrl} variant="outline" className="shrink-0 gap-2">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied!' : 'Copy'}
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-3 text-sm text-orange-500 bg-orange-500/10 p-3 rounded-lg">
+          <Flame className="h-4 w-4" />
+          <span>Do NOT open this link yourself - it will be deleted after the first view!</span>
+        </div>
+
+        <Button onClick={resetForm} variant="outline" className="gap-2">
+          <Share2 className="h-4 w-4" />
+          Create Another Share
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-3">
         <Input
           placeholder="Title (optional)"
           value={title}
@@ -88,18 +160,18 @@ export function CreateShareForm() {
           className="bg-secondary border-border"
           maxLength={100}
         />
-        
+
         <Textarea
           placeholder="Paste your text or code here..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className="min-h-[300px] bg-secondary border-border font-mono text-sm resize-y"
+          className="min-h-[180px] bg-secondary border-border font-mono text-sm resize-y"
           maxLength={100000}
         />
       </div>
 
       {/* Security Options */}
-      <div className="flex flex-col sm:flex-row gap-4 p-4 bg-secondary/50 rounded-lg border border-border">
+      <div className="flex flex-col sm:flex-row gap-3 p-3 bg-secondary/50 rounded-lg border border-border">
         <div className="flex-1 space-y-2">
           <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
             <Lock className="h-4 w-4 text-primary" />
@@ -175,8 +247,8 @@ export function CreateShareForm() {
           </Select>
         </div>
 
-        <Button 
-          type="submit" 
+        <Button
+          type="submit"
           disabled={loading || !content.trim()}
           className="gap-2 glow-primary"
         >

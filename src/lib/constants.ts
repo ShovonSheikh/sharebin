@@ -82,13 +82,10 @@ export async function hashPassword(password: string): Promise<string> {
 
 // API configuration
 export function getApiBaseUrl(): string {
-  // In production, use the site URL with /api prefix
-  // The proxy handles routing to the edge function
-  if (import.meta.env.PROD) {
-    return `${window.location.origin}/api`;
-  }
-  // In development, use the proxy
-  return '/api';
+  // Both in production and development, use /api/v1 prefix
+  // Production: vercel.json rewrites proxy to Supabase edge function
+  // Development: Vite proxy handles the routing
+  return '/api/v1';
 }
 
 export const SUPABASE_FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;

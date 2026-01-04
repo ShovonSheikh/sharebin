@@ -8,23 +8,23 @@ const Index = () => {
   return (
     <Layout>
       {/* Hero Section */}
-      <section className="py-12 lg:py-20">
+      <section className="py-6 lg:py-10">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12 space-y-4 animate-fade-in">
+          <div className="text-center mb-6 space-y-3 animate-fade-in">
             <Badge variant="secondary" className="mb-4">
               Free & Open Source
             </Badge>
-            <h1 className="text-4xl lg:text-6xl font-bold text-foreground">
+            <h1 className="text-3xl lg:text-5xl font-bold text-foreground">
               Share Text <span className="text-gradient">Instantly</span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Paste your text or code below to generate a shareable link. 
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Paste your text or code below to generate a shareable link.
               The fastest way to share snippets online.
             </p>
           </div>
 
           {/* Create Form */}
-          <Card className="max-w-4xl mx-auto p-6 lg:p-8 bg-card border-border animate-fade-in">
+          <Card className="max-w-4xl mx-auto p-4 lg:p-6 bg-card border-border animate-fade-in">
             <CreateShareForm />
           </Card>
         </div>
@@ -36,7 +36,7 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12">
             Why Use <span className="text-primary">TextShare</span>?
           </h2>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
             <FeatureCard
               icon={<Zap className="h-6 w-6 text-primary" />}
@@ -78,7 +78,7 @@ const Index = () => {
           <h2 className="text-3xl font-bold text-center mb-12">
             Three Simple Steps
           </h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <StepCard
               number={1}

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPassword, SUPABASE_FUNCTIONS_URL } from '@/lib/constants';
 import { Loader2, FileX, Home, Flame } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface Share {
   id: string;
@@ -74,6 +75,7 @@ export default function ViewShare() {
       // Check if expired
       if (data.expires_at && new Date(data.expires_at) < new Date()) {
         setError('This share has expired');
+        toast.error('This share has expired');
         return;
       }
 
@@ -107,6 +109,7 @@ export default function ViewShare() {
     } catch (err) {
       console.error('Error fetching share:', err);
       setError('Failed to load share');
+      toast.error('Failed to load share. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -128,12 +131,12 @@ export default function ViewShare() {
       }
 
       const data = await response.json();
-      
+
       // Store in session for subsequent access
       if (!data.burned) {
         sessionStorage.setItem(`share_${id}`, JSON.stringify(data));
       }
-      
+
       setShare(data);
       setProtectedMeta(null);
       return true;

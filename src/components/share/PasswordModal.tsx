@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Lock, Loader2, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PasswordModalProps {
   title?: string | null;
@@ -19,7 +20,7 @@ export function PasswordModal({ title, burnAfterRead, onSubmit, error }: Passwor
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password.trim()) {
       setLocalError('Please enter a password');
       return;
@@ -32,9 +33,11 @@ export function PasswordModal({ title, burnAfterRead, onSubmit, error }: Passwor
       const success = await onSubmit(password);
       if (!success) {
         setLocalError('Invalid password');
+        toast.error('Invalid password. Please try again.');
       }
     } catch {
       setLocalError('Failed to verify password');
+      toast.error('Failed to verify password. Please try again.');
     } finally {
       setLoading(false);
     }

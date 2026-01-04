@@ -7,12 +7,13 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8080,
+    port: 8081,
     proxy: {
-      '/api': {
-        target: 'https://gcwllpqedjcihrzexixq.supabase.co/functions/v1',
+      '/api/v1': {
+        target: 'https://geqluvulkhroxvagpjdo.supabase.co/functions/v1',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '/api-shares'),
+        rewrite: (path) => path.replace(/^\/api\/v1/, ''),
+        secure: true,
       },
     },
   },
