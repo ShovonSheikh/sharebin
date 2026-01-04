@@ -27,7 +27,7 @@ export default function ApiDocs() {
           {/* Header */}
           <div className="space-y-4">
             <Badge variant="secondary">API v1</Badge>
-            <h1 className="text-4xl font-bold">TextShare API Documentation</h1>
+            <h1 className="text-4xl font-bold">Pastely API Documentation</h1>
             <p className="text-xl text-muted-foreground">
               Programmatically create, read, and manage text shares.
             </p>
@@ -46,7 +46,7 @@ export default function ApiDocs() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                Generate an API key from your <a href="/dashboard" className="text-primary hover:underline">dashboard</a>. 
+                Generate an API key from your <a href="/dashboard" className="text-primary hover:underline">dashboard</a>.
                 Include it in the <code className="bg-secondary px-2 py-1 rounded text-sm">Authorization</code> header:
               </p>
               <CodeBlock language="bash">

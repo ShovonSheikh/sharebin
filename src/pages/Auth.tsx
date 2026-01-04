@@ -258,7 +258,7 @@ export default function Auth() {
       <div className="container mx-auto px-4 py-20">
         <Card className="max-w-md mx-auto bg-card border-border">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome to TextShare</CardTitle>
+            <CardTitle className="text-2xl">Welcome to Pastely</CardTitle>
             <CardDescription>
               Sign in or create an account to manage your shares and API keys.
             </CardDescription>

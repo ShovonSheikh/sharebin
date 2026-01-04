@@ -25,7 +25,7 @@ export function Header() {
         <Link to="/" className="flex items-center gap-2 group">
           <FileText className="h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
           <span className="text-xl font-bold text-foreground">
-            Text<span className="text-primary">Share</span>
+            Paste<span className="text-primary">ly</span>
           </span>
         </Link>
 

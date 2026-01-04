@@ -14,6 +14,14 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/v1/, ''),
         secure: true,
+        configure: (proxy) => {
+          proxy.on('proxyReq', (proxyReq, req) => {
+            // Forward the original host to the edge function
+            const host = req.headers.host || 'localhost:8081';
+            proxyReq.setHeader('X-Forwarded-Host', host);
+            proxyReq.setHeader('X-Forwarded-Proto', 'http');
+          });
+        },
       },
     },
   },

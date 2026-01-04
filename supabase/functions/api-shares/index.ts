@@ -269,7 +269,18 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Validate API key - require authentication for POST requests
       const userId = await getUserIdFromApiKey(supabase, authHeader);
+      if (!userId) {
+        return new Response(JSON.stringify({
+          error: "Unauthorized",
+          message: "Valid API key required. Get one from your dashboard."
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" }
+        });
+      }
+
       const expiresAt = body.expiration ? getExpirationDate(body.expiration) : null;
 
       // Hash password if provided
@@ -296,9 +307,28 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
+      // Dynamically determine the site URL from the request
+      // Check Origin header, then Referer, then X-Forwarded-Host, then fallback
+      const origin = req.headers.get("Origin");
+      const referer = req.headers.get("Referer");
+      const forwardedHost = req.headers.get("X-Forwarded-Host");
+      const forwardedProto = req.headers.get("X-Forwarded-Proto") || "https";
 
-      // Use the site URL instead of the function URL
-      const siteUrl = Deno.env.get("SITE_URL") || "https://sharebin.lovable.app";
+      let siteUrl: string;
+      if (origin && origin !== "null") {
+        siteUrl = origin;
+      } else if (referer) {
+        try {
+          const refererUrl = new URL(referer);
+          siteUrl = refererUrl.origin;
+        } catch {
+          siteUrl = Deno.env.get("SITE_URL") || "https://sharebin.lovable.app";
+        }
+      } else if (forwardedHost) {
+        siteUrl = `${forwardedProto}://${forwardedHost}`;
+      } else {
+        siteUrl = Deno.env.get("SITE_URL") || "https://sharebin.lovable.app";
+      }
 
       return new Response(JSON.stringify({
         id: data.id,

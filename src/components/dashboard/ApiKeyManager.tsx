@@ -63,7 +63,7 @@ export function ApiKeyManager() {
 
   const generateNewKey = async () => {
     if (!user) return;
-    
+
     setGenerating(true);
     try {
       const key = generateApiKey();
@@ -125,7 +125,7 @@ export function ApiKeyManager() {
           API Keys
         </CardTitle>
         <CardDescription>
-          Generate API keys to access the TextShare API programmatically.
+          Generate API keys to access the Pastely API programmatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

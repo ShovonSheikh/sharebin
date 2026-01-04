@@ -100,7 +100,7 @@ export default function EmbedShare() {
             rel="noopener noreferrer"
             className="text-primary hover:underline text-sm mt-2 inline-flex items-center gap-1"
           >
-            View on TextShare
+            View on Pastely
             <ExternalLink className="h-3 w-3" />
           </a>
         </Card>
@@ -141,7 +141,7 @@ export default function EmbedShare() {
           rel="noopener noreferrer"
           className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1"
         >
-          TextShare
+          Pastely
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>

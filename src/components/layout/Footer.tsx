@@ -6,7 +6,7 @@ export function Footer() {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-muted-foreground text-sm">
-            TextShare is not responsible for the contents of shared links.
+            Pastely is not responsible for the contents of shared links.
           </p>
           <div className="flex items-center gap-6 text-sm">
             <Link to="/docs" className="text-muted-foreground hover:text-primary transition-colors">
