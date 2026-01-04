@@ -307,28 +307,8 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" }
         });
       }
-      // Dynamically determine the site URL from the request
-      // Check Origin header, then Referer, then X-Forwarded-Host, then fallback
-      const origin = req.headers.get("Origin");
-      const referer = req.headers.get("Referer");
-      const forwardedHost = req.headers.get("X-Forwarded-Host");
-      const forwardedProto = req.headers.get("X-Forwarded-Proto") || "https";
-
-      let siteUrl: string;
-      if (origin && origin !== "null") {
-        siteUrl = origin;
-      } else if (referer) {
-        try {
-          const refererUrl = new URL(referer);
-          siteUrl = refererUrl.origin;
-        } catch {
-          siteUrl = Deno.env.get("SITE_URL") || "https://sharebin.lovable.app";
-        }
-      } else if (forwardedHost) {
-        siteUrl = `${forwardedProto}://${forwardedHost}`;
-      } else {
-        siteUrl = Deno.env.get("SITE_URL") || "https://sharebin.lovable.app";
-      }
+      // Use static site URL
+      const siteUrl = "https://sharebin.lovable.app";
 
       return new Response(JSON.stringify({
         id: data.id,
