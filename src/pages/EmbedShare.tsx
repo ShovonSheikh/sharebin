@@ -3,8 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/atom-one-dark.css';
+import { CodeBlock } from '@/components/share/CodeBlock';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Loader2, FileX, Lock, ExternalLink } from 'lucide-react';
@@ -69,14 +68,6 @@ export default function EmbedShare() {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (share && share.syntax !== 'markdown') {
-      document.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block as HTMLElement);
-      });
-    }
-  }, [share]);
 
   if (loading) {
     return (
@@ -147,21 +138,22 @@ export default function EmbedShare() {
       </div>
 
       {/* Content */}
-      <Card className="bg-code border-code-border overflow-hidden">
-        {share.syntax === 'markdown' ? (
+      {share.syntax === 'markdown' ? (
+        <Card className="bg-[#282c34] border-[#3e4451] overflow-hidden">
           <div className="p-4 prose prose-invert prose-sm max-w-none overflow-auto max-h-[350px]">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
               {share.content}
             </ReactMarkdown>
           </div>
-        ) : (
-          <pre className="p-4 overflow-auto max-h-[350px] text-sm">
-            <code className={`language-${share.syntax}`}>
-              {share.content}
-            </code>
-          </pre>
-        )}
-      </Card>
+        </Card>
+      ) : (
+        <CodeBlock
+          content={share.content}
+          syntax={share.syntax}
+          showLineNumbers={true}
+          maxHeight="350px"
+        />
+      )}
     </div>
   );
 }

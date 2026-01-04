@@ -1,14 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Plus, Clock, Eye, Code, FileText, Lock, Flame, ExternalLink } from 'lucide-react';
+import { Copy, Check, Plus, Clock, Eye, Code, FileText, Flame, ExternalLink } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import hljs from 'highlight.js';
-import 'highlight.js/styles/atom-one-dark.css';
+import { CodeBlock } from '@/components/share/CodeBlock';
 import { formatDate } from '@/lib/constants';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
@@ -40,14 +39,6 @@ export function ShareView({ share }: ShareViewProps) {
   const shareUrl = `${window.location.origin}/s/${share.id}`;
   const embedUrl = `${window.location.origin}/embed/${share.id}`;
   const embedCode = `<iframe src="${embedUrl}" width="100%" height="400" frameborder="0" style="border-radius: 8px; border: 1px solid #333;"></iframe>`;
-
-  useEffect(() => {
-    if (activeTab === 'code') {
-      document.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block as HTMLElement);
-      });
-    }
-  }, [activeTab, share.content]);
 
   const copyContent = async () => {
     await navigator.clipboard.writeText(share.content);
@@ -213,20 +204,3 @@ export function ShareView({ share }: ShareViewProps) {
   );
 }
 
-function CodeBlock({ content, syntax }: { content: string; syntax: string }) {
-  useEffect(() => {
-    document.querySelectorAll('pre code').forEach((block) => {
-      hljs.highlightElement(block as HTMLElement);
-    });
-  }, [content]);
-
-  return (
-    <Card className="bg-code border-code-border overflow-hidden">
-      <pre className="p-6 overflow-x-auto">
-        <code className={`language-${syntax}`}>
-          {content}
-        </code>
-      </pre>
-    </Card>
-  );
-}
