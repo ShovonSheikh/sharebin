@@ -1,4 +1,7 @@
-project_id = "geqluvulkhroxvagpjdo"
+project_id = "gcwllpqedjcihrzexixq"
 
 [functions.api-shares]
+verify_jwt = false
+
+[functions.api-pastes]
 verify_jwt = false

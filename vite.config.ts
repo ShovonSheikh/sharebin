@@ -7,10 +7,10 @@ import { componentTagger } from "lovable-tagger";
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
-    port: 8081,
+    port: 8080,
     proxy: {
       '/api/v1': {
-        target: 'https://geqluvulkhroxvagpjdo.supabase.co/functions/v1/api-pastes',
+        target: 'https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes',
         changeOrigin: true,
         rewrite: (path) => {
           // Convert /api/v1/create -> ?action=create, etc.
@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyReq, req) => {
             // Forward the original host to the edge function
-            const host = req.headers.host || 'localhost:8081';
+            const host = req.headers.host || 'localhost:8080';
             proxyReq.setHeader('X-Forwarded-Host', host);
             proxyReq.setHeader('X-Forwarded-Proto', 'http');
           });

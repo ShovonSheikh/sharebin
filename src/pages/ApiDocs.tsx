@@ -58,21 +58,21 @@ export default function ApiDocs() {
 
           {/* Endpoints */}
           <Tabs defaultValue="create" className="space-y-6">
-            <TabsList className="bg-secondary flex-wrap h-auto gap-2 p-2">
-              <TabsTrigger value="create" className="gap-2">
-                <FileText className="h-4 w-4" />
+            <TabsList className="bg-secondary grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-1 p-1">
+              <TabsTrigger value="create" className="gap-2 text-xs sm:text-sm py-2">
+                <FileText className="h-4 w-4 hidden sm:block" />
                 Create Paste
               </TabsTrigger>
-              <TabsTrigger value="get" className="gap-2">
-                <FileText className="h-4 w-4" />
+              <TabsTrigger value="get" className="gap-2 text-xs sm:text-sm py-2">
+                <FileText className="h-4 w-4 hidden sm:block" />
                 Get Paste
               </TabsTrigger>
-              <TabsTrigger value="list" className="gap-2">
-                <List className="h-4 w-4" />
+              <TabsTrigger value="list" className="gap-2 text-xs sm:text-sm py-2">
+                <List className="h-4 w-4 hidden sm:block" />
                 List Pastes
               </TabsTrigger>
-              <TabsTrigger value="delete" className="gap-2">
-                <Trash2 className="h-4 w-4" />
+              <TabsTrigger value="delete" className="gap-2 text-xs sm:text-sm py-2">
+                <Trash2 className="h-4 w-4 hidden sm:block" />
                 Delete Paste
               </TabsTrigger>
             </TabsList>
@@ -139,7 +139,8 @@ function CreatePasteEndpoint() {
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
     } catch (error) {
-      setResponse(JSON.stringify({ error: 'Request failed' }, null, 2));
+      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      setResponse(JSON.stringify({ error: errorMessage, hint: 'Check API URL and network connection' }, null, 2));
     } finally {
       setLoading(false);
     }
@@ -317,11 +318,25 @@ function GetPasteEndpoint() {
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
     } catch (error) {
-      setResponse(JSON.stringify({ error: 'Request failed' }, null, 2));
+      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      setResponse(JSON.stringify({ error: errorMessage, hint: 'Check API URL and network connection' }, null, 2));
     } finally {
       setLoading(false);
     }
   };
+
+  // Live-updating examples
+  const curlCommand = useMemo(() => 
+    `curl "${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}"`,
+    [pasteId]
+  );
+
+  const jsCommand = useMemo(() => 
+    `const response = await fetch("${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}");
+const data = await response.json();
+console.log(data.paste_content);`,
+    [pasteId]
+  );
 
   return (
     <EndpointCard
@@ -347,12 +362,15 @@ function GetPasteEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <CodeExamples
-          curl={`curl "${API_BASE_URL}/get?id=abc12345"`}
-          javascript={`const response = await fetch("${API_BASE_URL}/get?id=abc12345");
-const data = await response.json();
-console.log(data.paste_content);`}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Live Examples</label>
+            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
+              Updates as you type
+            </Badge>
+          </div>
+          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+        </div>
       </div>
     </EndpointCard>
   );
@@ -383,11 +401,25 @@ function ListPastesEndpoint() {
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
     } catch (error) {
-      setResponse(JSON.stringify({ error: 'Request failed' }, null, 2));
+      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      setResponse(JSON.stringify({ error: errorMessage, hint: 'Check API URL and network connection' }, null, 2));
     } finally {
       setLoading(false);
     }
   };
+
+  // Live-updating examples
+  const curlCommand = useMemo(() => generateCurl({
+    method: 'GET',
+    url: `${window.location.origin}${API_BASE_URL}/list`,
+    apiKey: apiKey || 'YOUR_API_KEY',
+  }), [apiKey]);
+
+  const jsCommand = useMemo(() => generateFetch({
+    method: 'GET',
+    url: `${window.location.origin}${API_BASE_URL}/list`,
+    apiKey: apiKey || 'YOUR_API_KEY',
+  }), [apiKey]);
 
   return (
     <EndpointCard
@@ -413,18 +445,15 @@ function ListPastesEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <CodeExamples
-          curl={`curl "${API_BASE_URL}/list" \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-          javascript={`const response = await fetch("${API_BASE_URL}/list", {
-  headers: {
-    "Authorization": "Bearer YOUR_API_KEY"
-  }
-});
-
-const data = await response.json();
-console.log(data.pastes);`}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Live Examples</label>
+            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
+              Updates as you type
+            </Badge>
+          </div>
+          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+        </div>
       </div>
     </EndpointCard>
   );
@@ -456,11 +485,25 @@ function DeletePasteEndpoint() {
       const data = await res.json();
       setResponse(JSON.stringify(data, null, 2));
     } catch (error) {
-      setResponse(JSON.stringify({ error: 'Request failed' }, null, 2));
+      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      setResponse(JSON.stringify({ error: errorMessage, hint: 'Check API URL and network connection' }, null, 2));
     } finally {
       setLoading(false);
     }
   };
+
+  // Live-updating examples
+  const curlCommand = useMemo(() => generateCurl({
+    method: 'DELETE',
+    url: `${window.location.origin}${API_BASE_URL}/delete?id=${pasteId || 'YOUR_PASTE_ID'}`,
+    apiKey: apiKey || 'YOUR_API_KEY',
+  }), [apiKey, pasteId]);
+
+  const jsCommand = useMemo(() => generateFetch({
+    method: 'DELETE',
+    url: `${window.location.origin}${API_BASE_URL}/delete?id=${pasteId || 'YOUR_PASTE_ID'}`,
+    apiKey: apiKey || 'YOUR_API_KEY',
+  }), [apiKey, pasteId]);
 
   return (
     <EndpointCard
@@ -496,19 +539,15 @@ function DeletePasteEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <CodeExamples
-          curl={`curl -X DELETE "${API_BASE_URL}/delete?id=abc12345" \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-          javascript={`const response = await fetch("${API_BASE_URL}/delete?id=abc12345", {
-  method: "DELETE",
-  headers: {
-    "Authorization": "Bearer YOUR_API_KEY"
-  }
-});
-
-const data = await response.json();
-console.log(data.message);`}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Live Examples</label>
+            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
+              Updates as you type
+            </Badge>
+          </div>
+          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+        </div>
       </div>
     </EndpointCard>
   );
@@ -555,9 +594,9 @@ function CodeBlock({ children, language }: { children: string; language?: string
   };
 
   return (
-    <div className="relative group">
-      <pre className="bg-code border border-code-border rounded-lg p-4 overflow-x-auto">
-        <code className={`text-sm font-mono ${language ? `language-${language}` : ''}`}>
+    <div className="relative group overflow-hidden">
+      <pre className="bg-code border border-code-border rounded-lg p-4 overflow-x-auto max-w-full">
+        <code className={`text-sm font-mono whitespace-pre-wrap break-words ${language ? `language-${language}` : ''}`}>
           {children}
         </code>
       </pre>
