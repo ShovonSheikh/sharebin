@@ -113,6 +113,7 @@ export function LiveCodeEditor({
                     }}
                 >
                     <code
+                        key={`${language}-${value.length}`}
                         ref={codeRef}
                         className={`language-${language}`}
                         style={textStyles}
