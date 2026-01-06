@@ -44,6 +44,30 @@ export type Database = {
         }
         Relationships: []
       }
+      api_rate_limits: {
+        Row: {
+          api_key_hash: string
+          created_at: string | null
+          id: string
+          request_count: number | null
+          window_start: string
+        }
+        Insert: {
+          api_key_hash: string
+          created_at?: string | null
+          id?: string
+          request_count?: number | null
+          window_start: string
+        }
+        Update: {
+          api_key_hash?: string
+          created_at?: string | null
+          id?: string
+          request_count?: number | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -109,7 +133,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
     }
     Enums: {
       [_ in never]: never

@@ -3,13 +3,18 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ApiKeyManager } from '@/components/dashboard/ApiKeyManager';
 import { UserPastes } from '@/components/dashboard/UserPastes';
+import { AnalyticsOverview } from '@/components/dashboard/AnalyticsOverview';
+import { ViewsChart } from '@/components/dashboard/ViewsChart';
+import { PopularPastes } from '@/components/dashboard/PopularPastes';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import { Plus, Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { data: analytics, isLoading: analyticsLoading } = useAnalytics(user?.id);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -50,6 +55,26 @@ export default function Dashboard() {
                 New Share
               </Button>
             </Link>
+          </div>
+
+          {/* Analytics Overview */}
+          <AnalyticsOverview
+            totalPastes={analytics?.totalPastes || 0}
+            totalViews={analytics?.totalViews || 0}
+            activeKeys={analytics?.activeKeys || 0}
+            loading={analyticsLoading}
+          />
+
+          {/* Charts Row */}
+          <div className="grid md:grid-cols-2 gap-6">
+            <ViewsChart 
+              data={analytics?.viewsByDay || []} 
+              loading={analyticsLoading} 
+            />
+            <PopularPastes 
+              pastes={analytics?.popularPastes || []} 
+              loading={analyticsLoading} 
+            />
           </div>
 
           {/* API Keys Section */}

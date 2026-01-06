@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/select';
 import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getApiBaseUrl } from '@/lib/constants';
 import { toast } from 'sonner';
-import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List, Lock, Flame } from 'lucide-react';
+import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List, Lock, Flame, Terminal } from 'lucide-react';
 import { generateCurl, generateFetch } from '@/lib/curlGenerator';
 
 const API_BASE_URL = getApiBaseUrl();
@@ -23,8 +23,8 @@ const API_BASE_URL = getApiBaseUrl();
 export default function ApiDocs() {
   return (
     <Layout showFooter={false}>
-      <div className="container mx-auto px-4 py-8 lg:py-12">
-        <div className="max-w-5xl mx-auto space-y-8">
+      <div className="container mx-auto px-4 py-8 lg:py-12 overflow-hidden">
+        <div className="max-w-5xl mx-auto space-y-8 min-w-0">
           {/* Header */}
           <div className="space-y-4">
             <Badge variant="secondary">API v1</Badge>
@@ -35,7 +35,7 @@ export default function ApiDocs() {
           </div>
 
           {/* Authentication */}
-          <Card className="bg-card border-border">
+          <Card className="bg-card border-border overflow-hidden">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Key className="h-5 w-5 text-primary" />
@@ -45,7 +45,7 @@ export default function ApiDocs() {
                 API requests require authentication via Bearer token.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 min-w-0 overflow-hidden">
               <p className="text-muted-foreground">
                 Generate an API key from your <a href="/dashboard" className="text-primary hover:underline">dashboard</a>.
                 Include it in the <code className="bg-secondary px-2 py-1 rounded text-sm">Authorization</code> header:
@@ -56,24 +56,61 @@ export default function ApiDocs() {
             </CardContent>
           </Card>
 
+          {/* Rate Limiting Info */}
+          <Card className="bg-card border-border overflow-hidden">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Terminal className="h-5 w-5 text-primary" />
+                Rate Limiting
+              </CardTitle>
+              <CardDescription>
+                API requests are rate limited to prevent abuse.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 min-w-0 overflow-hidden">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-secondary/50 rounded-lg">
+                  <p className="text-2xl font-bold">60</p>
+                  <p className="text-sm text-muted-foreground">requests per minute</p>
+                </div>
+                <div className="p-4 bg-secondary/50 rounded-lg">
+                  <p className="text-2xl font-bold">1,000</p>
+                  <p className="text-sm text-muted-foreground">requests per hour</p>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Rate limit headers are included in all responses:
+              </p>
+              <CodeBlock language="bash">
+{`X-RateLimit-Limit: 60
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 30`}
+              </CodeBlock>
+            </CardContent>
+          </Card>
+
           {/* Endpoints */}
           <Tabs defaultValue="create" className="space-y-6">
-            <TabsList className="bg-secondary grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-1 p-1">
+            <TabsList className="bg-secondary grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1 p-1">
               <TabsTrigger value="create" className="gap-2 text-xs sm:text-sm py-2">
                 <FileText className="h-4 w-4 hidden sm:block" />
-                Create Paste
+                Create
               </TabsTrigger>
               <TabsTrigger value="get" className="gap-2 text-xs sm:text-sm py-2">
                 <FileText className="h-4 w-4 hidden sm:block" />
-                Get Paste
+                Get
+              </TabsTrigger>
+              <TabsTrigger value="raw" className="gap-2 text-xs sm:text-sm py-2">
+                <Terminal className="h-4 w-4 hidden sm:block" />
+                Raw
               </TabsTrigger>
               <TabsTrigger value="list" className="gap-2 text-xs sm:text-sm py-2">
                 <List className="h-4 w-4 hidden sm:block" />
-                List Pastes
+                List
               </TabsTrigger>
               <TabsTrigger value="delete" className="gap-2 text-xs sm:text-sm py-2">
                 <Trash2 className="h-4 w-4 hidden sm:block" />
-                Delete Paste
+                Delete
               </TabsTrigger>
             </TabsList>
 
@@ -83,6 +120,10 @@ export default function ApiDocs() {
 
             <TabsContent value="get">
               <GetPasteEndpoint />
+            </TabsContent>
+
+            <TabsContent value="raw">
+              <RawPasteEndpoint />
             </TabsContent>
 
             <TabsContent value="list">
@@ -146,7 +187,6 @@ function CreatePasteEndpoint() {
     }
   };
 
-  // Generate cURL command reactively based on form state
   const curlCommand = useMemo(() => generateCurl({
     method: 'POST',
     url: `${window.location.origin}${API_BASE_URL}/create`,
@@ -161,7 +201,6 @@ function CreatePasteEndpoint() {
     }
   }), [apiKey, content, title, syntax, expiration, password, burnAfterRead]);
 
-  // Generate JavaScript fetch code reactively
   const jsCommand = useMemo(() => generateFetch({
     method: 'POST',
     url: `${window.location.origin}${API_BASE_URL}/create`,
@@ -182,8 +221,8 @@ function CreatePasteEndpoint() {
       path="/create"
       description="Create a new text paste."
     >
-      <div className="grid gap-4">
-        <div className="space-y-2">
+      <div className="grid gap-4 min-w-0 overflow-hidden">
+        <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">API Key (optional)</label>
           <Input
             placeholder="ts_your_api_key"
@@ -193,7 +232,7 @@ function CreatePasteEndpoint() {
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">Content *</label>
           <Textarea
             placeholder="Your text content..."
@@ -204,7 +243,7 @@ function CreatePasteEndpoint() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <label className="text-sm font-medium">Title</label>
             <Input
               placeholder="Optional title"
@@ -214,7 +253,7 @@ function CreatePasteEndpoint() {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <label className="text-sm font-medium">Syntax</label>
             <Select value={syntax} onValueChange={setSyntax}>
               <SelectTrigger className="bg-secondary">
@@ -230,7 +269,7 @@ function CreatePasteEndpoint() {
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <label className="text-sm font-medium">Expiration</label>
             <Select value={expiration} onValueChange={setExpiration}>
               <SelectTrigger className="bg-secondary">
@@ -246,7 +285,7 @@ function CreatePasteEndpoint() {
             </Select>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 min-w-0">
             <label className="text-sm font-medium flex items-center gap-2">
               <Lock className="h-4 w-4" />
               Password
@@ -282,7 +321,7 @@ function CreatePasteEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0 overflow-hidden">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Live Examples</label>
             <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
@@ -325,7 +364,6 @@ function GetPasteEndpoint() {
     }
   };
 
-  // Live-updating examples
   const curlCommand = useMemo(() => 
     `curl "${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}"`,
     [pasteId]
@@ -344,8 +382,8 @@ console.log(data.paste_content);`,
       path="/get?id={paste_id}"
       description="Retrieve a paste by its ID."
     >
-      <div className="grid gap-4">
-        <div className="space-y-2">
+      <div className="grid gap-4 min-w-0 overflow-hidden">
+        <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">Paste ID *</label>
           <Input
             placeholder="abc12345"
@@ -362,7 +400,105 @@ console.log(data.paste_content);`,
 
         {response && <ResponseBlock response={response} />}
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0 overflow-hidden">
+          <div className="flex items-center gap-2">
+            <label className="text-sm font-medium">Live Examples</label>
+            <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
+              Updates as you type
+            </Badge>
+          </div>
+          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+        </div>
+      </div>
+    </EndpointCard>
+  );
+}
+
+function RawPasteEndpoint() {
+  const [pasteId, setPasteId] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState<string | null>(null);
+
+  const handleTry = async () => {
+    if (!pasteId.trim()) {
+      toast.error('Paste ID is required');
+      return;
+    }
+
+    setLoading(true);
+    setResponse(null);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/raw?id=${pasteId}`, {
+        method: 'GET',
+      });
+
+      const text = await res.text();
+      setResponse(text);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Request failed';
+      setResponse(`Error: ${errorMessage}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const curlCommand = useMemo(() => 
+    `curl "${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}"`,
+    [pasteId]
+  );
+
+  const jsCommand = useMemo(() => 
+    `const response = await fetch("${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}");
+const text = await response.text();
+console.log(text);`,
+    [pasteId]
+  );
+
+  return (
+    <EndpointCard
+      method="GET"
+      path="/raw?id={paste_id}"
+      description="Get raw paste content as plain text. Perfect for piping to other commands."
+    >
+      <div className="grid gap-4 min-w-0 overflow-hidden">
+        <div className="p-4 bg-secondary/50 rounded-lg border border-border">
+          <p className="text-sm text-muted-foreground">
+            Returns plain text without JSON wrapping. Ideal for:
+          </p>
+          <ul className="text-sm text-muted-foreground mt-2 list-disc list-inside space-y-1">
+            <li>Piping to other commands: <code className="bg-secondary px-1 rounded">curl ... | python</code></li>
+            <li>Downloading with wget</li>
+            <li>Direct script execution</li>
+          </ul>
+          <p className="text-sm text-yellow-500 mt-3">
+            ⚠️ Password-protected pastes cannot be accessed via this endpoint.
+          </p>
+        </div>
+
+        <div className="space-y-2 min-w-0">
+          <label className="text-sm font-medium">Paste ID *</label>
+          <Input
+            placeholder="abc12345"
+            value={pasteId}
+            onChange={(e) => setPasteId(e.target.value)}
+            className="bg-secondary font-mono"
+          />
+        </div>
+
+        <Button onClick={handleTry} disabled={loading} className="gap-2">
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+          Try It
+        </Button>
+
+        {response && (
+          <div className="space-y-2 min-w-0 overflow-hidden">
+            <label className="text-sm font-medium">Response (Plain Text)</label>
+            <CodeBlock language="plaintext">{response}</CodeBlock>
+          </div>
+        )}
+
+        <div className="space-y-2 min-w-0 overflow-hidden">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Live Examples</label>
             <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
@@ -408,7 +544,6 @@ function ListPastesEndpoint() {
     }
   };
 
-  // Live-updating examples
   const curlCommand = useMemo(() => generateCurl({
     method: 'GET',
     url: `${window.location.origin}${API_BASE_URL}/list`,
@@ -427,8 +562,8 @@ function ListPastesEndpoint() {
       path="/list"
       description="List all pastes for the authenticated user."
     >
-      <div className="grid gap-4">
-        <div className="space-y-2">
+      <div className="grid gap-4 min-w-0 overflow-hidden">
+        <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">API Key *</label>
           <Input
             placeholder="ts_your_api_key"
@@ -445,7 +580,7 @@ function ListPastesEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0 overflow-hidden">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Live Examples</label>
             <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
@@ -492,7 +627,6 @@ function DeletePasteEndpoint() {
     }
   };
 
-  // Live-updating examples
   const curlCommand = useMemo(() => generateCurl({
     method: 'DELETE',
     url: `${window.location.origin}${API_BASE_URL}/delete?id=${pasteId || 'YOUR_PASTE_ID'}`,
@@ -511,8 +645,8 @@ function DeletePasteEndpoint() {
       path="/delete?id={paste_id}"
       description="Delete a paste. You must be the owner."
     >
-      <div className="grid gap-4">
-        <div className="space-y-2">
+      <div className="grid gap-4 min-w-0 overflow-hidden">
+        <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">API Key *</label>
           <Input
             placeholder="ts_your_api_key"
@@ -522,7 +656,7 @@ function DeletePasteEndpoint() {
           />
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">Paste ID *</label>
           <Input
             placeholder="abc12345"
@@ -539,7 +673,7 @@ function DeletePasteEndpoint() {
 
         {response && <ResponseBlock response={response} />}
 
-        <div className="space-y-2">
+        <div className="space-y-2 min-w-0 overflow-hidden">
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Live Examples</label>
             <Badge variant="outline" className="text-xs text-green-500 border-green-500/50">
@@ -571,15 +705,15 @@ function EndpointCard({
   };
 
   return (
-    <Card className="bg-card border-border">
-      <CardHeader>
-        <div className="flex items-center gap-3">
+    <Card className="bg-card border-border overflow-hidden">
+      <CardHeader className="min-w-0 overflow-hidden">
+        <div className="flex items-center gap-3 flex-wrap">
           <Badge className={methodColors[method]}>{method}</Badge>
-          <code className="text-lg font-mono">{path}</code>
+          <code className="text-lg font-mono break-all">{path}</code>
         </div>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className="min-w-0 overflow-hidden">{children}</CardContent>
     </Card>
   );
 }
@@ -594,9 +728,9 @@ function CodeBlock({ children, language }: { children: string; language?: string
   };
 
   return (
-    <div className="relative group overflow-hidden">
-      <pre className="bg-code border border-code-border rounded-lg p-4 overflow-x-auto max-w-full">
-        <code className={`text-sm font-mono whitespace-pre-wrap break-words ${language ? `language-${language}` : ''}`}>
+    <div className="relative group overflow-hidden max-w-full">
+      <pre className="bg-code border border-code-border rounded-lg p-4 overflow-x-auto">
+        <code className={`text-sm font-mono whitespace-pre-wrap break-all ${language ? `language-${language}` : ''}`}>
           {children}
         </code>
       </pre>
@@ -614,7 +748,7 @@ function CodeBlock({ children, language }: { children: string; language?: string
 
 function ResponseBlock({ response }: { response: string }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0 overflow-hidden">
       <label className="text-sm font-medium">Response</label>
       <CodeBlock language="json">{response}</CodeBlock>
     </div>
@@ -623,17 +757,17 @@ function ResponseBlock({ response }: { response: string }) {
 
 function CodeExamples({ curl, javascript }: { curl: string; javascript: string }) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 min-w-0 overflow-hidden">
       <label className="text-sm font-medium">Examples</label>
       <Tabs defaultValue="curl">
         <TabsList className="bg-secondary">
           <TabsTrigger value="curl">cURL</TabsTrigger>
           <TabsTrigger value="javascript">JavaScript</TabsTrigger>
         </TabsList>
-        <TabsContent value="curl" className="mt-2">
+        <TabsContent value="curl" className="mt-2 min-w-0 overflow-hidden">
           <CodeBlock language="bash">{curl}</CodeBlock>
         </TabsContent>
-        <TabsContent value="javascript" className="mt-2">
+        <TabsContent value="javascript" className="mt-2 min-w-0 overflow-hidden">
           <CodeBlock language="javascript">{javascript}</CodeBlock>
         </TabsContent>
       </Tabs>
