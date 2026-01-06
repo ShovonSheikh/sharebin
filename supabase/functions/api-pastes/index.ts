@@ -5,6 +5,10 @@ const corsHeaders = {
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Rate limit configuration
+const RATE_LIMIT_PER_MINUTE = 60;
+const RATE_LIMIT_PER_HOUR = 1000;
+
 interface CreatePasteRequest {
     content: string;
     title?: string;
@@ -16,6 +20,13 @@ interface CreatePasteRequest {
 
 interface VerifyPasswordRequest {
     password: string;
+}
+
+interface RateLimitResult {
+    allowed: boolean;
+    remaining: number;
+    reset: number;
+    limit: number;
 }
 
 function getExpirationDate(expiration: string): Date | null {
@@ -46,15 +57,100 @@ async function hashApiKey(key: string): Promise<string> {
     return hashPassword(key);
 }
 
+// Rate limiting function
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function getUserIdFromApiKey(supabase: any, authHeader: string): Promise<string | null> {
+async function checkRateLimit(supabase: any, apiKeyHash: string): Promise<RateLimitResult> {
+    const now = new Date();
+    const windowStart = new Date(now);
+    windowStart.setSeconds(0, 0); // Round to current minute
+
+    try {
+        // Check current minute's count
+        const { data: existing } = await supabase
+            .from("api_rate_limits")
+            .select("request_count")
+            .eq("api_key_hash", apiKeyHash)
+            .eq("window_start", windowStart.toISOString())
+            .maybeSingle();
+
+        const currentCount = existing?.request_count || 0;
+
+        if (currentCount >= RATE_LIMIT_PER_MINUTE) {
+            const reset = 60 - now.getSeconds();
+            return { allowed: false, remaining: 0, reset, limit: RATE_LIMIT_PER_MINUTE };
+        }
+
+        // Check hourly limit
+        const hourStart = new Date(now);
+        hourStart.setMinutes(0, 0, 0);
+        
+        const { data: hourlyData } = await supabase
+            .from("api_rate_limits")
+            .select("request_count")
+            .eq("api_key_hash", apiKeyHash)
+            .gte("window_start", hourStart.toISOString());
+
+        const hourlyCount = (hourlyData || []).reduce((sum: number, row: { request_count: number }) => sum + row.request_count, 0);
+        
+        if (hourlyCount >= RATE_LIMIT_PER_HOUR) {
+            const reset = (60 - now.getMinutes()) * 60;
+            return { allowed: false, remaining: 0, reset, limit: RATE_LIMIT_PER_HOUR };
+        }
+
+        // Upsert the counter
+        if (existing) {
+            await supabase
+                .from("api_rate_limits")
+                .update({ request_count: currentCount + 1 })
+                .eq("api_key_hash", apiKeyHash)
+                .eq("window_start", windowStart.toISOString());
+        } else {
+            await supabase
+                .from("api_rate_limits")
+                .insert({
+                    api_key_hash: apiKeyHash,
+                    window_start: windowStart.toISOString(),
+                    request_count: 1
+                });
+        }
+
+        // Cleanup old records occasionally (1% chance per request)
+        if (Math.random() < 0.01) {
+            await supabase.rpc("cleanup_old_rate_limits").catch(() => {});
+        }
+
+        return {
+            allowed: true,
+            remaining: RATE_LIMIT_PER_MINUTE - currentCount - 1,
+            reset: 60 - now.getSeconds(),
+            limit: RATE_LIMIT_PER_MINUTE
+        };
+    } catch (error) {
+        console.error("Rate limit check error:", error);
+        // Allow request on error to avoid blocking
+        return { allowed: true, remaining: RATE_LIMIT_PER_MINUTE, reset: 60, limit: RATE_LIMIT_PER_MINUTE };
+    }
+}
+
+// Helper to add rate limit headers
+function addRateLimitHeaders(headers: Record<string, string>, rateLimit: RateLimitResult): Record<string, string> {
+    return {
+        ...headers,
+        "X-RateLimit-Limit": rateLimit.limit.toString(),
+        "X-RateLimit-Remaining": rateLimit.remaining.toString(),
+        "X-RateLimit-Reset": rateLimit.reset.toString(),
+    };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getUserIdFromApiKey(supabase: any, authHeader: string): Promise<{ userId: string | null; keyHash: string | null }> {
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-        return null;
+        return { userId: null, keyHash: null };
     }
 
     const apiKey = authHeader.replace("Bearer ", "").trim();
     if (!apiKey.startsWith("ts_")) {
-        return null;
+        return { userId: null, keyHash: null };
     }
 
     const keyHash = await hashApiKey(apiKey);
@@ -68,7 +164,7 @@ async function getUserIdFromApiKey(supabase: any, authHeader: string): Promise<s
 
     if (error || !data) {
         console.log("API key lookup failed:", error?.message);
-        return null;
+        return { userId: null, keyHash: null };
     }
 
     // Update last_used_at
@@ -77,23 +173,21 @@ async function getUserIdFromApiKey(supabase: any, authHeader: string): Promise<s
         .update({ last_used_at: new Date().toISOString() })
         .eq("key_hash", keyHash);
 
-    return data.user_id;
+    return { userId: data.user_id, keyHash };
 }
 
 // Determine action from URL path
 function getActionFromUrl(url: URL): string {
     const pathname = url.pathname;
-    // Extract action from paths like /api-pastes, /v1/create, etc.
     const parts = pathname.split('/').filter(Boolean);
     const lastPart = parts[parts.length - 1];
 
-    // Map endpoint names to actions
     if (lastPart === 'create') return 'create';
     if (lastPart === 'get') return 'get';
     if (lastPart === 'list') return 'list';
     if (lastPart === 'delete') return 'delete';
+    if (lastPart === 'raw') return 'raw';
 
-    // Fallback: determine action from method + params (for direct function calls)
     return 'auto';
 }
 
@@ -111,6 +205,65 @@ Deno.serve(async (req) => {
     const action = getActionFromUrl(url);
 
     try {
+        // ============================================
+        // ACTION: RAW (plain text content)
+        // ============================================
+        if (req.method === "GET" && action === 'raw') {
+            const pasteId = url.searchParams.get("id");
+            if (!pasteId) {
+                return new Response("Paste ID required", {
+                    status: 400,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            const { data, error } = await supabase
+                .from("shares")
+                .select("content, password_hash, expires_at, burn_after_read, views")
+                .eq("id", pasteId)
+                .maybeSingle();
+
+            if (error || !data) {
+                return new Response("Paste not found", {
+                    status: 404,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Check expiration
+            if (data.expires_at && new Date(data.expires_at) < new Date()) {
+                return new Response("Paste has expired", {
+                    status: 410,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Password protected pastes cannot be accessed via raw endpoint
+            if (data.password_hash) {
+                return new Response("Password protected pastes cannot be accessed via /raw endpoint", {
+                    status: 403,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Handle burn after read
+            if (data.burn_after_read) {
+                await supabase.from("shares").delete().eq("id", pasteId);
+                console.log(`Paste ${pasteId} burned after raw read`);
+            } else {
+                // Update view count
+                await supabase
+                    .from("shares")
+                    .update({ views: (data.views || 0) + 1 })
+                    .eq("id", pasteId);
+            }
+
+            return new Response(data.content, {
+                status: 200,
+                headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" }
+            });
+        }
+
         // ============================================
         // ACTION: GET (with password verification)
         // ============================================
@@ -144,7 +297,6 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Check expiration
             if (paste.expires_at && new Date(paste.expires_at) < new Date()) {
                 return new Response(JSON.stringify({ error: "Paste has expired" }), {
                     status: 410,
@@ -152,7 +304,6 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Verify password
             const providedHash = await hashPassword(body.password);
             if (providedHash !== paste.password_hash) {
                 return new Response(JSON.stringify({ error: "Invalid password" }), {
@@ -161,19 +312,16 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // If burn after read, delete the paste
             if (paste.burn_after_read) {
                 await supabase.from("shares").delete().eq("id", pasteId);
                 console.log(`Paste ${pasteId} burned after read`);
             } else {
-                // Update view count
                 await supabase
                     .from("shares")
                     .update({ views: (paste.views || 0) + 1 })
                     .eq("id", pasteId);
             }
 
-            // Return paste with new field names
             return new Response(JSON.stringify({
                 paste_id: paste.id,
                 paste_content: paste.content,
@@ -195,7 +343,6 @@ Deno.serve(async (req) => {
         if (req.method === "GET" && (action === 'get' || action === 'list' || action === 'auto')) {
             const pasteId = url.searchParams.get("id");
 
-            // Get single paste
             if (pasteId || action === 'get') {
                 if (!pasteId) {
                     return new Response(JSON.stringify({ error: "Paste ID required" }), {
@@ -224,7 +371,6 @@ Deno.serve(async (req) => {
                     });
                 }
 
-                // If password protected, don't return content
                 if (data.password_hash) {
                     return new Response(JSON.stringify({
                         paste_id: data.id,
@@ -240,7 +386,6 @@ Deno.serve(async (req) => {
                     });
                 }
 
-                // If burn after read, delete after returning
                 if (data.burn_after_read) {
                     await supabase.from("shares").delete().eq("id", pasteId);
                     console.log(`Paste ${pasteId} burned after read`);
@@ -260,7 +405,6 @@ Deno.serve(async (req) => {
                     });
                 }
 
-                // Update view count
                 await supabase
                     .from("shares")
                     .update({ views: (data.views || 0) + 1 })
@@ -280,13 +424,25 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // List pastes (requires auth)
+            // List pastes (requires auth with rate limiting)
             if (action === 'list' || !pasteId) {
-                const userId = await getUserIdFromApiKey(supabase, authHeader);
-                if (!userId) {
+                const { userId, keyHash } = await getUserIdFromApiKey(supabase, authHeader);
+                if (!userId || !keyHash) {
                     return new Response(JSON.stringify({ error: "Unauthorized" }), {
                         status: 401,
                         headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    });
+                }
+
+                // Check rate limit
+                const rateLimit = await checkRateLimit(supabase, keyHash);
+                if (!rateLimit.allowed) {
+                    return new Response(JSON.stringify({ 
+                        error: "Rate limit exceeded",
+                        retry_after: rateLimit.reset
+                    }), {
+                        status: 429,
+                        headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
                     });
                 }
 
@@ -297,7 +453,6 @@ Deno.serve(async (req) => {
                     .order("created_at", { ascending: false })
                     .limit(100);
 
-                // Transform to new field names
                 const pastes = (data || []).map(item => ({
                     paste_id: item.id,
                     title: item.title,
@@ -310,13 +465,13 @@ Deno.serve(async (req) => {
 
                 return new Response(JSON.stringify({ pastes }), {
                     status: 200,
-                    headers: { ...corsHeaders, "Content-Type": "application/json" }
+                    headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
                 });
             }
         }
 
         // ============================================
-        // ACTION: CREATE (new paste)
+        // ACTION: CREATE (new paste with rate limiting)
         // ============================================
         if (req.method === "POST" && (action === 'create' || action === 'auto')) {
             let body: CreatePasteRequest;
@@ -337,9 +492,8 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Validate API key - require authentication for POST requests
-            const userId = await getUserIdFromApiKey(supabase, authHeader);
-            if (!userId) {
+            const { userId, keyHash } = await getUserIdFromApiKey(supabase, authHeader);
+            if (!userId || !keyHash) {
                 return new Response(JSON.stringify({
                     error: "Unauthorized",
                     message: "Valid API key required. Get one from your dashboard."
@@ -349,9 +503,19 @@ Deno.serve(async (req) => {
                 });
             }
 
-            const expiresAt = body.expiration ? getExpirationDate(body.expiration) : null;
+            // Check rate limit
+            const rateLimit = await checkRateLimit(supabase, keyHash);
+            if (!rateLimit.allowed) {
+                return new Response(JSON.stringify({ 
+                    error: "Rate limit exceeded",
+                    retry_after: rateLimit.reset
+                }), {
+                    status: 429,
+                    headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
+                });
+            }
 
-            // Hash password if provided
+            const expiresAt = body.expiration ? getExpirationDate(body.expiration) : null;
             const passwordHash = body.password ? await hashPassword(body.password) : null;
 
             const { data, error } = await supabase
@@ -376,7 +540,6 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Use static site URL
             const siteUrl = "https://pastely.app";
 
             return new Response(JSON.stringify({
@@ -386,12 +549,12 @@ Deno.serve(async (req) => {
                 burn_after_read: body.burn_after_read || false
             }), {
                 status: 201,
-                headers: { ...corsHeaders, "Content-Type": "application/json" }
+                headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
             });
         }
 
         // ============================================
-        // ACTION: DELETE (remove paste)
+        // ACTION: DELETE (remove paste with rate limiting)
         // ============================================
         if (req.method === "DELETE" && (action === 'delete' || action === 'auto')) {
             const pasteId = url.searchParams.get("id");
@@ -402,11 +565,23 @@ Deno.serve(async (req) => {
                 });
             }
 
-            const userId = await getUserIdFromApiKey(supabase, authHeader);
-            if (!userId) {
+            const { userId, keyHash } = await getUserIdFromApiKey(supabase, authHeader);
+            if (!userId || !keyHash) {
                 return new Response(JSON.stringify({ error: "Unauthorized" }), {
                     status: 401,
                     headers: { ...corsHeaders, "Content-Type": "application/json" }
+                });
+            }
+
+            // Check rate limit
+            const rateLimit = await checkRateLimit(supabase, keyHash);
+            if (!rateLimit.allowed) {
+                return new Response(JSON.stringify({ 
+                    error: "Rate limit exceeded",
+                    retry_after: rateLimit.reset
+                }), {
+                    status: 429,
+                    headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
                 });
             }
 
@@ -426,7 +601,7 @@ Deno.serve(async (req) => {
             await supabase.from("shares").delete().eq("id", pasteId);
             return new Response(JSON.stringify({ message: "Paste deleted successfully" }), {
                 status: 200,
-                headers: { ...corsHeaders, "Content-Type": "application/json" }
+                headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
             });
         }
 
