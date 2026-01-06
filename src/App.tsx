@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import ViewPaste from "./pages/ViewPaste";
 import EmbedPaste from "./pages/EmbedPaste";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import ApiDocs from "./pages/ApiDocs";
 import NotFound from "./pages/NotFound";
@@ -26,6 +28,8 @@ const App = () => (
             <Route path="/p/:id" element={<ViewPaste />} />
             <Route path="/embed/:id" element={<EmbedPaste />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/docs" element={<ApiDocs />} />
             <Route path="*" element={<NotFound />} />

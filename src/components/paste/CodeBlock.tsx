@@ -102,17 +102,17 @@ export function CodeBlock({
                 className="overflow-auto"
                 style={{ maxHeight: maxHeight || undefined }}
             >
-                <pre className="p-0 m-0 text-sm leading-relaxed font-mono">
+                <pre className="p-0 m-0 text-sm font-mono" style={{ lineHeight: '1.5rem' }}>
                     <div className="flex">
                         {/* Line numbers gutter */}
                         {showLineNumbers && (
                             <div
                                 className="flex-shrink-0 select-none text-right pr-4 py-4 pl-4 text-white/30 bg-black/20 border-r border-white/10"
-                                style={{ minWidth: `${gutterWidth}rem` }}
+                                style={{ minWidth: `${gutterWidth}rem`, lineHeight: '1.5rem' }}
                                 aria-hidden="true"
                             >
                                 {lines.map((_, index) => (
-                                    <div key={index} className="leading-relaxed">
+                                    <div key={index} style={{ height: '1.5rem', lineHeight: '1.5rem' }}>
                                         {index + 1}
                                     </div>
                                 ))}
@@ -126,6 +126,7 @@ export function CodeBlock({
                                 `language-${syntax}`,
                                 'block py-4 px-4 whitespace-pre'
                             )}
+                            style={{ lineHeight: '1.5rem' }}
                         >
                             {content}
                         </code>

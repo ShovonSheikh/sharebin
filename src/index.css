@@ -102,7 +102,9 @@
     @apply bg-background text-foreground antialiased;
   }
 
-  code, pre, .font-mono {
+  code,
+  pre,
+  .font-mono {
     font-family: var(--font-mono);
   }
 }
@@ -121,10 +123,92 @@
   }
 }
 
-/* Syntax highlighting theme overrides */
+/* Syntax highlighting theme overrides - Transparent Background */
 .hljs {
-  background: hsl(var(--code-bg)) !important;
-  color: hsl(var(--foreground)) !important;
+  background: transparent !important;
+  color: #CCCCCC !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: inherit !important;
+}
+
+/* Keywords: const, new, return, if, else, function, etc. */
+.hljs-keyword,
+.hljs-built_in,
+.hljs-type {
+  color: #C586C0 !important;
+}
+
+/* Object Types: Date, Array, Object, etc. */
+.hljs-title.class_,
+.hljs-class .hljs-title,
+.hljs-built_in {
+  color: #4EC9B0 !important;
+}
+
+/* Method and Function Names: log, toLocaleTimeString, etc. */
+.hljs-title.function_,
+.hljs-function .hljs-title {
+  color: #DCDCAA !important;
+}
+
+/* Strings and Quoted Values */
+.hljs-string,
+.hljs-template-variable,
+.hljs-template-tag {
+  color: #CE9178 !important;
+}
+
+/* Property Keys: hour, minute, second, etc. */
+.hljs-attr,
+.hljs-attribute,
+.hljs-property {
+  color: #9CDCFE !important;
+}
+
+/* Numeric Values */
+.hljs-number,
+.hljs-literal {
+  color: #B5CEA8 !important;
+}
+
+/* Comments */
+.hljs-comment,
+.hljs-doctag {
+  color: #6A9955 !important;
+  font-style: italic;
+}
+
+/* Boolean Values: true, false */
+.hljs-literal,
+.hljs-boolean {
+  color: #569CD6 !important;
+}
+
+/* Variables and Parameters */
+.hljs-variable,
+.hljs-params {
+  color: #9CDCFE !important;
+}
+
+/* Punctuation and Operators */
+.hljs-punctuation,
+.hljs-operator {
+  color: #CCCCCC !important;
+}
+
+/* Language specific: JSON keys */
+.hljs-attr {
+  color: #9CDCFE !important;
+}
+
+/* Bash/Shell specific */
+.hljs-meta {
+  color: #C586C0 !important;
+}
+
+.hljs-meta .hljs-string {
+  color: #CE9178 !important;
 }
 
 /* Custom scrollbar */

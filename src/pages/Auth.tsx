@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -322,17 +322,12 @@ export default function Auth() {
                   </div>
 
                   <div className="flex justify-end">
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="px-0 text-sm text-muted-foreground hover:text-primary"
-                      onClick={() => {
-                        setShowForgotPassword(true);
-                        setErrors({});
-                      }}
+                    <Link
+                      to="/forgot-password"
+                      className="text-sm text-muted-foreground hover:text-primary transition-colors"
                     >
                       Forgot password?
-                    </Button>
+                    </Link>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={loading}>

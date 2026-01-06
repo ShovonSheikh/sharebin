@@ -82,7 +82,7 @@ export default function ApiDocs() {
                 Rate limit headers are included in all responses:
               </p>
               <CodeBlock language="bash">
-{`X-RateLimit-Limit: 60
+                {`X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
 X-RateLimit-Reset: 30`}
               </CodeBlock>
@@ -364,12 +364,12 @@ function GetPasteEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() => 
+  const curlCommand = useMemo(() =>
     `curl "${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}"`,
     [pasteId]
   );
 
-  const jsCommand = useMemo(() => 
+  const jsCommand = useMemo(() =>
     `const response = await fetch("${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}");
 const data = await response.json();
 console.log(data.paste_content);`,
@@ -443,12 +443,12 @@ function RawPasteEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() => 
+  const curlCommand = useMemo(() =>
     `curl "${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}"`,
     [pasteId]
   );
 
-  const jsCommand = useMemo(() => 
+  const jsCommand = useMemo(() =>
     `const response = await fetch("${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}");
 const text = await response.text();
 console.log(text);`,
@@ -729,7 +729,7 @@ function CodeBlock({ children, language }: { children: string; language?: string
 
   return (
     <div className="relative group overflow-hidden max-w-full">
-      <pre className="bg-code border border-code-border rounded-lg p-4 overflow-x-auto">
+      <pre className="bg-transparent rounded-lg py-2 overflow-x-auto">
         <code className={`text-sm font-mono whitespace-pre-wrap break-all ${language ? `language-${language}` : ''}`}>
           {children}
         </code>
