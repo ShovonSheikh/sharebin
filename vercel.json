@@ -2,22 +2,26 @@
   "rewrites": [
     {
       "source": "/api/v1/create",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes"
+      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/create"
     },
     {
       "source": "/api/v1/get",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes"
+      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/get"
     },
     {
       "source": "/api/v1/list",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes"
+      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/list"
     },
     {
       "source": "/api/v1/delete",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes"
+      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/delete"
     },
     {
-      "source": "/((?!assets/).*)",
+      "source": "/api/v1/raw",
+      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/raw"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]
