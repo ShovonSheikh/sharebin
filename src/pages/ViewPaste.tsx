@@ -96,15 +96,19 @@ export default function ViewPaste() {
       // Handle burn after read
       if (data.burn_after_read) {
         // Delete the paste after fetching
-        await supabase.from('shares').delete().eq('id', id);
-        setPaste({ ...data, burned: true });
+        const { error: deleteError } = await supabase.from('shares').delete().eq('id', id);
+        if (deleteError) {
+          console.error('Failed to delete burn-after-read paste:', deleteError);
+        }
+        setPaste({ ...data, burned: true, views: 1 });
       } else {
-        setPaste(data);
-        // Increment view count
+        // Increment view count first, then set paste with updated count
+        const newViews = (data.views || 0) + 1;
         await supabase
           .from('shares')
-          .update({ views: (data.views || 0) + 1 })
+          .update({ views: newViews })
           .eq('id', id);
+        setPaste({ ...data, views: newViews });
       }
     } catch (err) {
       console.error('Error fetching paste:', err);
