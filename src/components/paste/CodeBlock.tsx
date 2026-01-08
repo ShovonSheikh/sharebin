@@ -103,12 +103,12 @@ export function CodeBlock({
                 style={{ maxHeight: maxHeight || undefined }}
             >
                 <pre className="p-0 m-0 text-sm font-mono" style={{ lineHeight: '1.5rem' }}>
-                    <div className="flex">
+                    <div className="flex items-stretch">
                         {/* Line numbers gutter */}
                         {showLineNumbers && (
                             <div
                                 className="flex-shrink-0 select-none text-right pr-4 py-4 pl-4 text-white/30 bg-black/20 border-r border-white/10"
-                                style={{ minWidth: `${gutterWidth}rem`, lineHeight: '1.5rem' }}
+                                style={{ minWidth: `${gutterWidth}rem` }}
                                 aria-hidden="true"
                             >
                                 {lines.map((_, index) => (

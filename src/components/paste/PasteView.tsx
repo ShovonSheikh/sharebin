@@ -142,11 +142,19 @@ export function PasteView({ paste }: PasteViewProps) {
           </TabsContent>
 
           <TabsContent value="code" className="mt-4">
-            <CodeBlock content={paste.content} syntax={paste.syntax} />
+            <CodeBlock 
+              content={paste.content} 
+              syntax={paste.syntax} 
+              showLineNumbers={false}
+            />
           </TabsContent>
         </Tabs>
       ) : (
-        <CodeBlock content={paste.content} syntax={paste.syntax} />
+        <CodeBlock 
+          content={paste.content} 
+          syntax={paste.syntax} 
+          showLineNumbers={paste.syntax !== 'plaintext' && paste.syntax !== 'text'}
+        />
       )}
 
       {/* Share URL & QR Code */}
