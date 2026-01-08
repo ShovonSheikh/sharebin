@@ -12,21 +12,8 @@ export default defineConfig(({ mode }) => ({
       '/api/v1': {
         target: 'https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes',
         changeOrigin: true,
-        rewrite: (path) => {
-          // Convert /api/v1/create -> ?action=create, etc.
-          const action = path.replace('/api/v1/', '');
-          // Keep query params if present
-          return action.includes('?') ? action.substring(action.indexOf('?')) : '';
-        },
+        rewrite: (path) => path.replace('/api/v1', ''),
         secure: true,
-        configure: (proxy) => {
-          proxy.on('proxyReq', (proxyReq, req) => {
-            // Forward the original host to the edge function
-            const host = req.headers.host || 'localhost:8080';
-            proxyReq.setHeader('X-Forwarded-Host', host);
-            proxyReq.setHeader('X-Forwarded-Proto', 'http');
-          });
-        },
       },
     },
   },
