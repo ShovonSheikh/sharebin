@@ -149,7 +149,8 @@ async function getUserIdFromApiKey(supabase: any, authHeader: string): Promise<{
     }
 
     const apiKey = authHeader.replace("Bearer ", "").trim();
-    if (!apiKey.startsWith("ts_")) {
+    // Support both old 'ts_' prefix and new 'op_' prefix for backward compatibility
+    if (!apiKey.startsWith("op_") && !apiKey.startsWith("ts_")) {
         return { userId: null, keyHash: null };
     }
 

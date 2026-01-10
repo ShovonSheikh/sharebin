@@ -51,7 +51,7 @@ export default function ApiDocs() {
                 Include it in the <code className="bg-secondary px-2 py-1 rounded text-sm">Authorization</code> header:
               </p>
               <CodeBlock language="bash">
-                {`Authorization: Bearer ts_your_api_key_here`}
+                {`Authorization: Bearer op_your_api_key_here`}
               </CodeBlock>
             </CardContent>
           </Card>
@@ -225,7 +225,7 @@ function CreatePasteEndpoint() {
         <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">API Key (optional)</label>
           <Input
-            placeholder="ts_your_api_key"
+            placeholder="op_your_api_key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="bg-secondary font-mono"
