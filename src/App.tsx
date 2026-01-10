@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import ViewPaste from "./pages/ViewPaste";
+import RawPaste from "./pages/RawPaste";
 import EmbedPaste from "./pages/EmbedPaste";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/p/:id" element={<ViewPaste />} />
+            <Route path="/raw/:id" element={<RawPaste />} />
             <Route path="/embed/:id" element={<EmbedPaste />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />

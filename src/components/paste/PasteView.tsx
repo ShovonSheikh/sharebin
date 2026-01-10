@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Plus, Clock, Eye, Code, FileText, Flame, ExternalLink } from 'lucide-react';
+import { Copy, Check, Plus, Clock, Eye, Code, FileText, Flame, ExternalLink, FileCode } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -37,6 +37,7 @@ export function PasteView({ paste }: PasteViewProps) {
   );
 
   const pasteUrl = `${window.location.origin}/p/${paste.id}`;
+  const rawUrl = `${window.location.origin}/raw/${paste.id}`;
   const embedUrl = `${window.location.origin}/embed/${paste.id}`;
   const embedCode = `<iframe src="${embedUrl}" width="100%" height="400" frameborder="0" style="border-radius: 8px; border: 1px solid #333;"></iframe>`;
 
@@ -105,7 +106,15 @@ export function PasteView({ paste }: PasteViewProps) {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {!paste.burn_after_read && (
+            <a href={rawUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="outline" size="sm" className="gap-2">
+                <FileCode className="h-4 w-4" />
+                View Raw
+              </Button>
+            </a>
+          )}
           <Button variant="outline" size="sm" onClick={copyContent} className="gap-2">
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             Copy Text
