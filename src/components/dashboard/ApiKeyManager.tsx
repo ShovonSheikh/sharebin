@@ -125,7 +125,7 @@ export function ApiKeyManager() {
           API Keys
         </CardTitle>
         <CardDescription>
-          Generate API keys to access the Pastely API programmatically.
+          Generate API keys to access the OpenPaste API programmatically.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

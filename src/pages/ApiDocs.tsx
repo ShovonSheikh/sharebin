@@ -28,7 +28,7 @@ export default function ApiDocs() {
           {/* Header */}
           <div className="space-y-4">
             <Badge variant="secondary">API v1</Badge>
-            <h1 className="text-4xl font-bold">Pastely API Documentation</h1>
+            <h1 className="text-4xl font-bold">OpenPaste API Documentation</h1>
             <p className="text-xl text-muted-foreground">
               Programmatically create, read, and manage text pastes.
             </p>
