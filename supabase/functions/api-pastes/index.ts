@@ -260,24 +260,34 @@ Deno.serve(async (req) => {
                 });
             }
 
-            // Fetch the raw image from Supabase Storage
-            const { data: fileData, error: fileError } = await supabase.storage
+            // Get the public URL instead of downloading
+            const { data: urlData } = supabase.storage
                 .from("uploads")
-                .download(data.file_path);
+                .getPublicUrl(data.file_path);
 
-            if (fileError || !fileData) {
-                console.error("Error downloading image:", fileError);
+            if (!urlData?.publicUrl) {
+                return new Response("Failed to get image URL", {
+                    status: 500,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Fetch the image from the public URL
+            const imageResponse = await fetch(urlData.publicUrl);
+
+            if (!imageResponse.ok) {
                 return new Response("Failed to retrieve image", {
                     status: 500,
                     headers: { ...corsHeaders, "Content-Type": "text/plain" }
                 });
             }
 
+            // Get the image as array buffer
+            const imageBuffer = await imageResponse.arrayBuffer();
+
             // Handle burn after read
             if (data.burn_after_read) {
-                // Delete from storage first
                 await supabase.storage.from("uploads").remove([data.file_path]);
-                // Then delete the record
                 await supabase.from("shares").delete().eq("id", pasteId);
                 console.log(`Image ${pasteId} burned after raw read`);
             } else {
@@ -288,15 +298,15 @@ Deno.serve(async (req) => {
                     .eq("id", pasteId);
             }
 
-            // Determine content type (default to application/octet-stream)
-            const contentType = data.file_type || "application/octet-stream";
+            // Determine content type
+            const contentType = data.file_type || imageResponse.headers.get("content-type") || "application/octet-stream";
 
-            return new Response(fileData, {
+            return new Response(imageBuffer, {
                 status: 200,
                 headers: {
                     ...corsHeaders,
                     "Content-Type": contentType,
-                    "Cache-Control": "public, max-age=31536000",
+                    "Cache-Control": "public, max-age=31536000, immutable",
                 }
             });
         }
