@@ -1,92 +1,89 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function DirectImage() {
-  const { id } = useParams<{ id: string }>();
-  const [error, setError] = useState<string | null>(null);
+    const { id } = useParams<{ id: string }>();
+    const navigate = useNavigate();
+    const [imageUrl, setImageUrl] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      redirectToImage();
+    useEffect(() => {
+        const fetchImage = async () => {
+            try {
+                if (!id) return;
+
+                const { data, error: fetchError } = await supabase
+                    .from("shares")
+                    .select("file_path, password_hash")
+                    .eq("id", id)
+                    .single();
+
+                if (fetchError) throw fetchError;
+
+                if (!data) {
+                    setError("Image not found");
+                    return;
+                }
+
+                // If password protected, redirect to standard view
+                if (data.password_hash) {
+                    navigate(`/p/${id}`);
+                    return;
+                }
+
+                if (data.file_path) {
+                    const { data: publicUrlData } = supabase.storage
+                        .from("uploads")
+                        .getPublicUrl(data.file_path);
+
+                    setImageUrl(publicUrlData.publicUrl);
+                } else {
+                    setError("No image file associated with this ID");
+                }
+            } catch (err) {
+                console.error("Error fetching image:", err);
+                setError("Failed to load image");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchImage();
+    }, [id, navigate]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+            </div>
+        );
     }
-  }, [id]);
 
-  const redirectToImage = async () => {
-    try {
-      // Fetch the share record to get file path
-      const { data, error: fetchError } = await supabase
-        .from('shares')
-        .select('file_path, content_type, expires_at, password_hash')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (!data) {
-        setError('Image not found');
-        return;
-      }
-
-      // Check if it's actually an image
-      if (data.content_type !== 'image') {
-        setError('This is not an image');
-        return;
-      }
-
-      // Check if expired
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setError('This image has expired');
-        return;
-      }
-
-      // Check if password protected
-      if (data.password_hash) {
-        setError('This image is password protected. View it on the full page.');
-        return;
-      }
-
-      if (!data.file_path) {
-        setError('No image file found');
-        return;
-      }
-
-      // Get public URL and redirect
-      const { data: urlData } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(data.file_path);
-
-      if (urlData.publicUrl) {
-        window.location.replace(urlData.publicUrl);
-      } else {
-        setError('Failed to get image URL');
-      }
-    } catch (err) {
-      console.error('Error fetching image:', err);
-      setError('Failed to load image');
+    if (error) {
+        return (
+            <div className="min-h-screen bg-neutral-950 flex flex-col items-center justify-center text-white gap-4">
+                <AlertCircle className="h-12 w-12 text-red-500" />
+                <h1 className="text-xl font-semibold">{error}</h1>
+                <Button variant="secondary" onClick={() => navigate("/")}>
+                    Go Home
+                </Button>
+            </div>
+        );
     }
-  };
 
-  if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center p-8">
-          <p className="text-muted-foreground">{error}</p>
-          <a 
-            href={`/p/${id}`} 
-            className="text-primary hover:underline mt-2 block"
-          >
-            View full page
-          </a>
+        <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-4">
+            {imageUrl && (
+                <img
+                    src={imageUrl}
+                    alt="Shared content"
+                    className="max-w-full max-h-[90vh] object-contain rounded-sm shadow-2xl"
+                />
+            )}
         </div>
-      </div>
     );
-  }
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
 }
