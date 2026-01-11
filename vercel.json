@@ -28,7 +28,11 @@
       "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/i/:id",
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img?id=:id"
+    },
+    {
+      "source": "/((?!api/|i/).*)",
       "destination": "/index.html"
     }
   ]
