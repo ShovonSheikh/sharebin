@@ -29,11 +29,7 @@
     },
     {
       "source": "/api/v1/img",
-      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img",
-      "headers": {
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcWNwendkYmlvYmRkaGNxa252Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMzU4OTgsImV4cCI6MjA4MzcxMTg5OH0.ZWpTMEC-wCQOjkoHgCCH-IsHXM7_lxM4iwcQDemAwb8",
-        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9mcWNwendkYmlvYmRkaGNxa252Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgxMzU4OTgsImV4cCI6MjA4MzcxMTg5OH0.ZWpTMEC-wCQOjkoHgCCH-IsHXM7_lxM4iwcQDemAwb8"
-      }
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img"
     },
     {
       "source": "/((?!api/|i/).*)",
