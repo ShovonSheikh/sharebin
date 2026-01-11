@@ -83,7 +83,7 @@ async function checkRateLimit(supabase: any, apiKeyHash: string): Promise<RateLi
         // Check hourly limit
         const hourStart = new Date(now);
         hourStart.setMinutes(0, 0, 0);
-        
+
         const { data: hourlyData } = await supabase
             .from("api_rate_limits")
             .select("request_count")
@@ -91,7 +91,7 @@ async function checkRateLimit(supabase: any, apiKeyHash: string): Promise<RateLi
             .gte("window_start", hourStart.toISOString());
 
         const hourlyCount = (hourlyData || []).reduce((sum: number, row: { request_count: number }) => sum + row.request_count, 0);
-        
+
         if (hourlyCount >= RATE_LIMIT_PER_HOUR) {
             const reset = (60 - now.getMinutes()) * 60;
             return { allowed: false, remaining: 0, reset, limit: RATE_LIMIT_PER_HOUR };
@@ -116,7 +116,7 @@ async function checkRateLimit(supabase: any, apiKeyHash: string): Promise<RateLi
 
         // Cleanup old records occasionally (1% chance per request)
         if (Math.random() < 0.01) {
-            await supabase.rpc("cleanup_old_rate_limits").catch(() => {});
+            await supabase.rpc("cleanup_old_rate_limits").catch(() => { });
         }
 
         return {
@@ -188,6 +188,7 @@ function getActionFromUrl(url: URL): string {
     if (lastPart === 'list') return 'list';
     if (lastPart === 'delete') return 'delete';
     if (lastPart === 'raw') return 'raw';
+    if (lastPart === 'img') return 'img';
 
     return 'auto';
 }
@@ -206,6 +207,96 @@ Deno.serve(async (req) => {
     const action = getActionFromUrl(url);
 
     try {
+        // ============================================
+        // ACTION: IMG (raw image data)
+        // ============================================
+        if (req.method === "GET" && action === 'img') {
+            const pasteId = url.searchParams.get("id");
+            if (!pasteId) {
+                return new Response("Image ID required", {
+                    status: 400,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            const { data, error } = await supabase
+                .from("shares")
+                .select("file_path, file_type, password_hash, expires_at, burn_after_read, views")
+                .eq("id", pasteId)
+                .maybeSingle();
+
+            if (error || !data) {
+                return new Response("Image not found", {
+                    status: 404,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Check expiration
+            if (data.expires_at && new Date(data.expires_at) < new Date()) {
+                return new Response("Image has expired", {
+                    status: 410,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Password protected images cannot be accessed via raw endpoint
+            if (data.password_hash) {
+                return new Response("Password protected images cannot be accessed via /img endpoint", {
+                    status: 403,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Check if this is actually a file upload with an image
+            if (!data.file_path) {
+                return new Response("No image file associated with this ID", {
+                    status: 404,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Fetch the raw image from Supabase Storage
+            const { data: fileData, error: fileError } = await supabase.storage
+                .from("uploads")
+                .download(data.file_path);
+
+            if (fileError || !fileData) {
+                console.error("Error downloading image:", fileError);
+                return new Response("Failed to retrieve image", {
+                    status: 500,
+                    headers: { ...corsHeaders, "Content-Type": "text/plain" }
+                });
+            }
+
+            // Handle burn after read
+            if (data.burn_after_read) {
+                // Delete from storage first
+                await supabase.storage.from("uploads").remove([data.file_path]);
+                // Then delete the record
+                await supabase.from("shares").delete().eq("id", pasteId);
+                console.log(`Image ${pasteId} burned after raw read`);
+            } else {
+                // Update view count
+                await supabase
+                    .from("shares")
+                    .update({ views: (data.views || 0) + 1 })
+                    .eq("id", pasteId);
+            }
+
+            // Determine content type (default to application/octet-stream)
+            const contentType = data.file_type || "application/octet-stream";
+
+            return new Response(fileData, {
+                status: 200,
+                headers: {
+                    ...corsHeaders,
+                    "Content-Type": contentType,
+                    "Cache-Control": "public, max-age=31536000",
+                }
+            });
+        }
+
         // ============================================
         // ACTION: RAW (plain text content)
         // ============================================
@@ -438,7 +529,7 @@ Deno.serve(async (req) => {
                 // Check rate limit
                 const rateLimit = await checkRateLimit(supabase, keyHash);
                 if (!rateLimit.allowed) {
-                    return new Response(JSON.stringify({ 
+                    return new Response(JSON.stringify({
                         error: "Rate limit exceeded",
                         retry_after: rateLimit.reset
                     }), {
@@ -507,7 +598,7 @@ Deno.serve(async (req) => {
             // Check rate limit
             const rateLimit = await checkRateLimit(supabase, keyHash);
             if (!rateLimit.allowed) {
-                return new Response(JSON.stringify({ 
+                return new Response(JSON.stringify({
                     error: "Rate limit exceeded",
                     retry_after: rateLimit.reset
                 }), {
@@ -577,7 +668,7 @@ Deno.serve(async (req) => {
             // Check rate limit
             const rateLimit = await checkRateLimit(supabase, keyHash);
             if (!rateLimit.allowed) {
-                return new Response(JSON.stringify({ 
+                return new Response(JSON.stringify({
                     error: "Rate limit exceeded",
                     retry_after: rateLimit.reset
                 }), {
