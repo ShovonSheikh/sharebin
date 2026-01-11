@@ -206,6 +206,10 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const action = getActionFromUrl(url);
 
+    // Skip auth check for public endpoints
+    const publicEndpoints = ['img', 'raw', 'get'];
+    const requiresAuth = !publicEndpoints.includes(action);
+
     try {
         // ============================================
         // ACTION: IMG (raw image data)
