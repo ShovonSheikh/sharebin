@@ -30,7 +30,6 @@ const App = () => (
             <Route path="/p/:id" element={<ViewPaste />} />
             <Route path="/raw/:id" element={<RawPaste />} />
             <Route path="/embed/:id" element={<EmbedPaste />} />
-            <Route path="/i/:id" element={<DirectImage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
