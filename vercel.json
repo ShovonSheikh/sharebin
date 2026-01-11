@@ -5,23 +5,27 @@
   "rewrites": [
     {
       "source": "/api/v1/create",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/create"
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/create"
     },
     {
       "source": "/api/v1/get",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/get"
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/get"
     },
     {
       "source": "/api/v1/list",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/list"
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/list"
     },
     {
       "source": "/api/v1/delete",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/delete"
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/delete"
     },
     {
       "source": "/api/v1/raw",
-      "destination": "https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/api-pastes/raw"
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/raw"
+    },
+    {
+      "source": "/api/v1/img",
+      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img"
     },
     {
       "source": "/((?!api/).*)",
