@@ -4,10 +4,6 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/i/:id",
-      "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img?id=:id"
-    },
-    {
       "source": "/api/v1/create",
       "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/create"
     },
@@ -32,7 +28,7 @@
       "destination": "https://ofqcpzwdbiobddhcqknv.supabase.co/functions/v1/api-pastes/img"
     },
     {
-      "source": "/((?!api/|i/).*)",
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ]

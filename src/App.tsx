@@ -8,7 +8,7 @@ import Index from "./pages/Index";
 import ViewPaste from "./pages/ViewPaste";
 import RawPaste from "./pages/RawPaste";
 import EmbedPaste from "./pages/EmbedPaste";
-import DirectImage from "./pages/DirectImage";
+
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
