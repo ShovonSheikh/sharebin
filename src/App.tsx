@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import ViewPaste from "./pages/ViewPaste";
 import RawPaste from "./pages/RawPaste";
 import EmbedPaste from "./pages/EmbedPaste";
+import DirectImage from "./pages/DirectImage";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/p/:id" element={<ViewPaste />} />
             <Route path="/raw/:id" element={<RawPaste />} />
             <Route path="/embed/:id" element={<EmbedPaste />} />
+            <Route path="/i/:id" element={<DirectImage />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />

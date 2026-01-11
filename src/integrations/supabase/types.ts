@@ -93,8 +93,13 @@ export type Database = {
         Row: {
           burn_after_read: boolean
           content: string
+          content_type: string | null
           created_at: string
           expires_at: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
           id: string
           password_hash: string | null
           syntax: string
@@ -105,8 +110,13 @@ export type Database = {
         Insert: {
           burn_after_read?: boolean
           content: string
+          content_type?: string | null
           created_at?: string
           expires_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
           id?: string
           password_hash?: string | null
           syntax?: string
@@ -117,8 +127,13 @@ export type Database = {
         Update: {
           burn_after_read?: boolean
           content?: string
+          content_type?: string | null
           created_at?: string
           expires_at?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
           id?: string
           password_hash?: string | null
           syntax?: string

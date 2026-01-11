@@ -20,6 +20,12 @@ interface Paste {
   views: number;
   burn_after_read?: boolean;
   burned?: boolean;
+  // File upload fields
+  file_path?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
+  file_type?: string | null;
+  content_type?: string | null;
 }
 
 interface ProtectedPasteMeta {
@@ -95,6 +101,10 @@ export default function ViewPaste() {
 
       // Handle burn after read
       if (data.burn_after_read) {
+        // For file uploads, delete the file from storage first
+        if (data.file_path) {
+          await supabase.storage.from('uploads').remove([data.file_path]);
+        }
         // Delete the paste after fetching
         const { error: deleteError } = await supabase.from('shares').delete().eq('id', id);
         if (deleteError) {

@@ -1,10 +1,15 @@
+import { useState } from 'react';
 import { Layout } from '@/components/layout/Layout';
 import { CreatePasteForm } from '@/components/paste/CreatePasteForm';
+import { FileUploadForm } from '@/components/upload/FileUploadForm';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Zap, Clock, Code, FileText, QrCode, Globe } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Zap, Clock, Code, FileText, QrCode, Globe, Type, Upload, Image, FileArchive } from 'lucide-react';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('text');
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -15,17 +20,36 @@ const Index = () => {
               Free & Open Source
             </Badge>
             <h1 className="text-3xl lg:text-5xl font-bold text-foreground">
-              Paste Text <span className="text-gradient">Instantly</span>
+              Share Content <span className="text-gradient">Instantly</span>
             </h1>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Paste your text or code below to generate a link.
-              The fastest way to paste snippets online.
+              Paste text, code, or upload files to generate a shareable link.
+              The fastest way to share snippets and files online.
             </p>
           </div>
 
-          {/* Create Form */}
+          {/* Create Form with Tabs */}
           <Card className="max-w-4xl mx-auto p-4 lg:p-6 bg-card border-border animate-fade-in">
-            <CreatePasteForm />
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="text" className="gap-2">
+                  <Type className="h-4 w-4" />
+                  Text / Code
+                </TabsTrigger>
+                <TabsTrigger value="file" className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  File Upload
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="text" className="mt-0">
+                <CreatePasteForm />
+              </TabsContent>
+
+              <TabsContent value="file" className="mt-0">
+                <FileUploadForm />
+              </TabsContent>
+            </Tabs>
           </Card>
         </div>
       </section>
@@ -49,19 +73,19 @@ const Index = () => {
               description="Support for 20+ programming languages with beautiful highlighting."
             />
             <FeatureCard
-              icon={<FileText className="h-6 w-6 text-primary" />}
-              title="Markdown Rendering"
-              description="Your markdown content looks exactly right, every time."
+              icon={<Image className="h-6 w-6 text-primary" />}
+              title="Image Hosting"
+              description="Upload images with direct links for embedding anywhere."
+            />
+            <FeatureCard
+              icon={<FileArchive className="h-6 w-6 text-primary" />}
+              title="File Sharing"
+              description="Share documents and zipped folders (ZIP, RAR, 7Z, TAR.GZ)."
             />
             <FeatureCard
               icon={<Clock className="h-6 w-6 text-primary" />}
               title="Flexible Expiration"
               description="Choose how long your content stays available."
-            />
-            <FeatureCard
-              icon={<QrCode className="h-6 w-6 text-primary" />}
-              title="QR Codes"
-              description="Automatic QR code generation for easy mobile sharing."
             />
             <FeatureCard
               icon={<Globe className="h-6 w-6 text-primary" />}
@@ -82,8 +106,8 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <StepCard
               number={1}
-              title="Paste Content"
-              description="Drop your text, markdown, or code into the editor above."
+              title="Paste or Upload"
+              description="Drop your text, code, or files into the editor above."
             />
             <StepCard
               number={2}
@@ -93,7 +117,7 @@ const Index = () => {
             <StepCard
               number={3}
               title="Share Anywhere"
-              description="Send the link directly or use the generated QR code."
+              description="Send the link or use embed codes for images."
             />
           </div>
         </div>
