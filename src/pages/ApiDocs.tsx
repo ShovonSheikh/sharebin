@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,8 +16,9 @@ import {
 } from '@/components/ui/select';
 import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getApiBaseUrl } from '@/lib/constants';
 import { toast } from 'sonner';
-import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List, Lock, Flame, Terminal } from 'lucide-react';
-import { generateCurl, generateFetch } from '@/lib/curlGenerator';
+import { Play, Copy, Check, Loader2, Key, FileText, Trash2, List, Lock, Flame, Terminal, ArrowLeft, Upload } from 'lucide-react';
+import { generateCurl, generateFetch, generatePython, generateGo, generatePHP, generateRuby } from '@/lib/curlGenerator';
+import { HighlightedCodeBlock } from '@/components/api-docs/HighlightedCodeBlock';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -25,12 +27,20 @@ export default function ApiDocs() {
     <Layout showFooter={false}>
       <div className="container mx-auto px-4 py-8 lg:py-12 overflow-hidden">
         <div className="max-w-5xl mx-auto space-y-8 min-w-0">
+          {/* Back Button */}
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
+
           {/* Header */}
           <div className="space-y-4">
             <Badge variant="secondary">API v1</Badge>
             <h1 className="text-4xl font-bold">OpenPaste API Documentation</h1>
             <p className="text-xl text-muted-foreground">
-              Programmatically create, read, and manage text pastes.
+              Programmatically create, read, and manage text pastes and file uploads.
             </p>
           </div>
 
@@ -50,9 +60,9 @@ export default function ApiDocs() {
                 Generate an API key from your <a href="/dashboard" className="text-primary hover:underline">dashboard</a>.
                 Include it in the <code className="bg-secondary px-2 py-1 rounded text-sm">Authorization</code> header:
               </p>
-              <CodeBlock language="bash">
+              <HighlightedCodeBlock language="bash">
                 {`Authorization: Bearer op_your_api_key_here`}
-              </CodeBlock>
+              </HighlightedCodeBlock>
             </CardContent>
           </Card>
 
@@ -81,20 +91,24 @@ export default function ApiDocs() {
               <p className="text-sm text-muted-foreground">
                 Rate limit headers are included in all responses:
               </p>
-              <CodeBlock language="bash">
+              <HighlightedCodeBlock language="bash">
                 {`X-RateLimit-Limit: 60
 X-RateLimit-Remaining: 45
 X-RateLimit-Reset: 30`}
-              </CodeBlock>
+              </HighlightedCodeBlock>
             </CardContent>
           </Card>
 
           {/* Endpoints */}
           <Tabs defaultValue="create" className="space-y-6">
-            <TabsList className="bg-secondary grid w-full grid-cols-2 md:grid-cols-5 h-auto gap-1 p-1">
+            <TabsList className="bg-secondary grid w-full grid-cols-3 md:grid-cols-6 h-auto gap-1 p-1">
               <TabsTrigger value="create" className="gap-2 text-xs sm:text-sm py-2">
                 <FileText className="h-4 w-4 hidden sm:block" />
                 Create
+              </TabsTrigger>
+              <TabsTrigger value="upload" className="gap-2 text-xs sm:text-sm py-2">
+                <Upload className="h-4 w-4 hidden sm:block" />
+                Upload
               </TabsTrigger>
               <TabsTrigger value="get" className="gap-2 text-xs sm:text-sm py-2">
                 <FileText className="h-4 w-4 hidden sm:block" />
@@ -116,6 +130,10 @@ X-RateLimit-Reset: 30`}
 
             <TabsContent value="create">
               <CreatePasteEndpoint />
+            </TabsContent>
+
+            <TabsContent value="upload">
+              <UploadFileEndpoint />
             </TabsContent>
 
             <TabsContent value="get">
@@ -187,22 +205,8 @@ function CreatePasteEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() => generateCurl({
-    method: 'POST',
-    url: `${window.location.origin}${API_BASE_URL}/create`,
-    apiKey: apiKey || 'YOUR_API_KEY',
-    body: {
-      content: content || 'Hello World',
-      title: title || undefined,
-      syntax,
-      expiration,
-      password: password || undefined,
-      burn_after_read: burnAfterRead || undefined,
-    }
-  }), [apiKey, content, title, syntax, expiration, password, burnAfterRead]);
-
-  const jsCommand = useMemo(() => generateFetch({
-    method: 'POST',
+  const requestOptions = useMemo(() => ({
+    method: 'POST' as const,
     url: `${window.location.origin}${API_BASE_URL}/create`,
     apiKey: apiKey || 'YOUR_API_KEY',
     body: {
@@ -328,7 +332,73 @@ function CreatePasteEndpoint() {
               Updates as you type
             </Badge>
           </div>
-          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+          <CodeExamples options={requestOptions} />
+        </div>
+      </div>
+    </EndpointCard>
+  );
+}
+
+function UploadFileEndpoint() {
+  return (
+    <EndpointCard
+      method="POST"
+      path="/upload"
+      description="Upload a file (images, documents, archives)."
+    >
+      <div className="grid gap-4 min-w-0 overflow-hidden">
+        <div className="p-4 bg-secondary/50 rounded-lg border border-border space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Upload files via multipart/form-data. Supports:
+          </p>
+          <div className="grid sm:grid-cols-3 gap-4 text-sm">
+            <div>
+              <p className="font-medium text-foreground">Images</p>
+              <p className="text-muted-foreground">.png, .jpg, .gif, .webp, .svg</p>
+              <p className="text-xs text-muted-foreground/70">Max: 10MB</p>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Documents</p>
+              <p className="text-muted-foreground">.pdf, .doc, .docx, .xls, .xlsx</p>
+              <p className="text-xs text-muted-foreground/70">Max: 25MB</p>
+            </div>
+            <div>
+              <p className="font-medium text-foreground">Archives</p>
+              <p className="text-muted-foreground">.zip, .rar, .7z, .tar.gz</p>
+              <p className="text-xs text-muted-foreground/70">Max: 50MB</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">cURL Example</label>
+          <HighlightedCodeBlock language="bash">
+            {`curl -X POST "${window.location.origin}${API_BASE_URL}/upload" \\
+  -H "Authorization: Bearer op_your_api_key" \\
+  -F "file=@/path/to/your/file.png" \\
+  -F "title=My Upload" \\
+  -F "expiration=1w"`}
+          </HighlightedCodeBlock>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Response</label>
+          <HighlightedCodeBlock language="json">
+            {JSON.stringify({
+              paste_id: "abc12345",
+              url: `${window.location.origin}/p/abc12345`,
+              direct_url: `${window.location.origin}/i/abc12345`,
+              file_name: "file.png",
+              file_size: 102400,
+              content_type: "image"
+            }, null, 2)}
+          </HighlightedCodeBlock>
+        </div>
+
+        <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+          <p className="text-sm">
+            <strong>Direct Image URL:</strong> Use <code className="bg-secondary px-1 rounded">/i/{'{id}'}</code> for embedding images in other projects.
+          </p>
         </div>
       </div>
     </EndpointCard>
@@ -364,23 +434,16 @@ function GetPasteEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() =>
-    `curl "${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}"`,
-    [pasteId]
-  );
-
-  const jsCommand = useMemo(() =>
-    `const response = await fetch("${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}");
-const data = await response.json();
-console.log(data.paste_content);`,
-    [pasteId]
-  );
+  const requestOptions = useMemo(() => ({
+    method: 'GET' as const,
+    url: `${window.location.origin}${API_BASE_URL}/get?id=${pasteId || 'YOUR_PASTE_ID'}`,
+  }), [pasteId]);
 
   return (
     <EndpointCard
       method="GET"
       path="/get?id={paste_id}"
-      description="Retrieve a paste by its ID."
+      description="Retrieve a paste by its ID. Returns file metadata for uploads."
     >
       <div className="grid gap-4 min-w-0 overflow-hidden">
         <div className="space-y-2 min-w-0">
@@ -407,7 +470,21 @@ console.log(data.paste_content);`,
               Updates as you type
             </Badge>
           </div>
-          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+          <CodeExamples options={requestOptions} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Response (File Upload)</label>
+          <HighlightedCodeBlock language="json">
+            {JSON.stringify({
+              paste_id: "abc12345",
+              content_type: "image",
+              file_name: "photo.jpg",
+              file_size: 2048576,
+              file_type: "image/jpeg",
+              created_at: "2026-01-12T..."
+            }, null, 2)}
+          </HighlightedCodeBlock>
         </div>
       </div>
     </EndpointCard>
@@ -443,17 +520,10 @@ function RawPasteEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() =>
-    `curl "${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}"`,
-    [pasteId]
-  );
-
-  const jsCommand = useMemo(() =>
-    `const response = await fetch("${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}");
-const text = await response.text();
-console.log(text);`,
-    [pasteId]
-  );
+  const requestOptions = useMemo(() => ({
+    method: 'GET' as const,
+    url: `${window.location.origin}${API_BASE_URL}/raw?id=${pasteId || 'YOUR_PASTE_ID'}`,
+  }), [pasteId]);
 
   return (
     <EndpointCard
@@ -494,7 +564,7 @@ console.log(text);`,
         {response && (
           <div className="space-y-2 min-w-0 overflow-hidden">
             <label className="text-sm font-medium">Response (Plain Text)</label>
-            <CodeBlock language="plaintext">{response}</CodeBlock>
+            <HighlightedCodeBlock language="plaintext">{response}</HighlightedCodeBlock>
           </div>
         )}
 
@@ -505,7 +575,18 @@ console.log(text);`,
               Updates as you type
             </Badge>
           </div>
-          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+          <CodeExamples options={requestOptions} />
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Direct Image Access</label>
+          <HighlightedCodeBlock language="bash">
+            {`# For image uploads, use /img endpoint:
+curl "${window.location.origin}${API_BASE_URL}/img?id=YOUR_IMAGE_ID" > image.png
+
+# Or use the short URL:
+curl "${window.location.origin}/i/YOUR_IMAGE_ID" > image.png`}
+          </HighlightedCodeBlock>
         </div>
       </div>
     </EndpointCard>
@@ -544,14 +625,8 @@ function ListPastesEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() => generateCurl({
-    method: 'GET',
-    url: `${window.location.origin}${API_BASE_URL}/list`,
-    apiKey: apiKey || 'YOUR_API_KEY',
-  }), [apiKey]);
-
-  const jsCommand = useMemo(() => generateFetch({
-    method: 'GET',
+  const requestOptions = useMemo(() => ({
+    method: 'GET' as const,
     url: `${window.location.origin}${API_BASE_URL}/list`,
     apiKey: apiKey || 'YOUR_API_KEY',
   }), [apiKey]);
@@ -560,13 +635,13 @@ function ListPastesEndpoint() {
     <EndpointCard
       method="GET"
       path="/list"
-      description="List all pastes for the authenticated user."
+      description="List all pastes and uploads for the authenticated user."
     >
       <div className="grid gap-4 min-w-0 overflow-hidden">
         <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">API Key *</label>
           <Input
-            placeholder="ts_your_api_key"
+            placeholder="op_your_api_key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="bg-secondary font-mono"
@@ -587,7 +662,7 @@ function ListPastesEndpoint() {
               Updates as you type
             </Badge>
           </div>
-          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+          <CodeExamples options={requestOptions} />
         </div>
       </div>
     </EndpointCard>
@@ -627,14 +702,8 @@ function DeletePasteEndpoint() {
     }
   };
 
-  const curlCommand = useMemo(() => generateCurl({
-    method: 'DELETE',
-    url: `${window.location.origin}${API_BASE_URL}/delete?id=${pasteId || 'YOUR_PASTE_ID'}`,
-    apiKey: apiKey || 'YOUR_API_KEY',
-  }), [apiKey, pasteId]);
-
-  const jsCommand = useMemo(() => generateFetch({
-    method: 'DELETE',
+  const requestOptions = useMemo(() => ({
+    method: 'DELETE' as const,
     url: `${window.location.origin}${API_BASE_URL}/delete?id=${pasteId || 'YOUR_PASTE_ID'}`,
     apiKey: apiKey || 'YOUR_API_KEY',
   }), [apiKey, pasteId]);
@@ -643,13 +712,13 @@ function DeletePasteEndpoint() {
     <EndpointCard
       method="DELETE"
       path="/delete?id={paste_id}"
-      description="Delete a paste. You must be the owner."
+      description="Delete a paste or file. You must be the owner."
     >
       <div className="grid gap-4 min-w-0 overflow-hidden">
         <div className="space-y-2 min-w-0">
           <label className="text-sm font-medium">API Key *</label>
           <Input
-            placeholder="ts_your_api_key"
+            placeholder="op_your_api_key"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             className="bg-secondary font-mono"
@@ -680,7 +749,7 @@ function DeletePasteEndpoint() {
               Updates as you type
             </Badge>
           </div>
-          <CodeExamples curl={curlCommand} javascript={jsCommand} />
+          <CodeExamples options={requestOptions} />
         </div>
       </div>
     </EndpointCard>
@@ -718,57 +787,58 @@ function EndpointCard({
   );
 }
 
-function CodeBlock({ children, language }: { children: string; language?: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const copy = async () => {
-    await navigator.clipboard.writeText(children);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="relative group overflow-hidden max-w-full">
-      <pre className="bg-transparent rounded-lg py-2 overflow-x-auto">
-        <code className={`text-sm font-mono whitespace-pre-wrap break-all ${language ? `language-${language}` : ''}`}>
-          {children}
-        </code>
-      </pre>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-        onClick={copy}
-      >
-        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      </Button>
-    </div>
-  );
-}
-
 function ResponseBlock({ response }: { response: string }) {
   return (
     <div className="space-y-2 min-w-0 overflow-hidden">
       <label className="text-sm font-medium">Response</label>
-      <CodeBlock language="json">{response}</CodeBlock>
+      <HighlightedCodeBlock language="json">{response}</HighlightedCodeBlock>
     </div>
   );
 }
 
-function CodeExamples({ curl, javascript }: { curl: string; javascript: string }) {
+interface CodeExamplesOptions {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  url: string;
+  apiKey?: string;
+  body?: Record<string, any>;
+}
+
+function CodeExamples({ options }: { options: CodeExamplesOptions }) {
+  const curlCode = useMemo(() => generateCurl(options), [options]);
+  const jsCode = useMemo(() => generateFetch(options), [options]);
+  const pythonCode = useMemo(() => generatePython(options), [options]);
+  const goCode = useMemo(() => generateGo(options), [options]);
+  const phpCode = useMemo(() => generatePHP(options), [options]);
+  const rubyCode = useMemo(() => generateRuby(options), [options]);
+
   return (
     <div className="space-y-2 min-w-0 overflow-hidden">
-      <label className="text-sm font-medium">Examples</label>
       <Tabs defaultValue="curl">
-        <TabsList className="bg-secondary">
-          <TabsTrigger value="curl">cURL</TabsTrigger>
-          <TabsTrigger value="javascript">JavaScript</TabsTrigger>
+        <TabsList className="bg-secondary flex-wrap h-auto">
+          <TabsTrigger value="curl" className="text-xs">cURL</TabsTrigger>
+          <TabsTrigger value="javascript" className="text-xs">JavaScript</TabsTrigger>
+          <TabsTrigger value="python" className="text-xs">Python</TabsTrigger>
+          <TabsTrigger value="go" className="text-xs">Go</TabsTrigger>
+          <TabsTrigger value="php" className="text-xs">PHP</TabsTrigger>
+          <TabsTrigger value="ruby" className="text-xs">Ruby</TabsTrigger>
         </TabsList>
         <TabsContent value="curl" className="mt-2 min-w-0 overflow-hidden">
-          <CodeBlock language="bash">{curl}</CodeBlock>
+          <HighlightedCodeBlock language="bash">{curlCode}</HighlightedCodeBlock>
         </TabsContent>
         <TabsContent value="javascript" className="mt-2 min-w-0 overflow-hidden">
-          <CodeBlock language="javascript">{javascript}</CodeBlock>
+          <HighlightedCodeBlock language="javascript">{jsCode}</HighlightedCodeBlock>
+        </TabsContent>
+        <TabsContent value="python" className="mt-2 min-w-0 overflow-hidden">
+          <HighlightedCodeBlock language="python">{pythonCode}</HighlightedCodeBlock>
+        </TabsContent>
+        <TabsContent value="go" className="mt-2 min-w-0 overflow-hidden">
+          <HighlightedCodeBlock language="go">{goCode}</HighlightedCodeBlock>
+        </TabsContent>
+        <TabsContent value="php" className="mt-2 min-w-0 overflow-hidden">
+          <HighlightedCodeBlock language="php">{phpCode}</HighlightedCodeBlock>
+        </TabsContent>
+        <TabsContent value="ruby" className="mt-2 min-w-0 overflow-hidden">
+          <HighlightedCodeBlock language="ruby">{rubyCode}</HighlightedCodeBlock>
         </TabsContent>
       </Tabs>
     </div>

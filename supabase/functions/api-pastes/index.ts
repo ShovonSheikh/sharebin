@@ -392,7 +392,7 @@ Deno.serve(async (req) => {
 
             const { data: paste, error } = await supabase
                 .from("shares")
-                .select("id, content, title, syntax, expires_at, created_at, views, password_hash, burn_after_read")
+                .select("id, content, title, syntax, expires_at, created_at, views, password_hash, burn_after_read, file_path, file_name, file_size, file_type, content_type")
                 .eq("id", pasteId)
                 .maybeSingle();
 
@@ -436,7 +436,13 @@ Deno.serve(async (req) => {
                 expires_at: paste.expires_at,
                 created_at: paste.created_at,
                 views: paste.views,
-                burned: paste.burn_after_read
+                burned: paste.burn_after_read,
+                // File upload fields
+                file_path: paste.file_path,
+                file_name: paste.file_name,
+                file_size: paste.file_size,
+                file_type: paste.file_type,
+                content_type: paste.content_type,
             }), {
                 status: 200,
                 headers: { ...corsHeaders, "Content-Type": "application/json" }

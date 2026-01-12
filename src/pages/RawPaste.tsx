@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 export default function RawPaste() {
@@ -82,7 +82,7 @@ export default function RawPaste() {
 
   if (error) {
     return (
-      <pre style={{ 
+      <div style={{ 
         fontFamily: 'monospace', 
         padding: '1rem', 
         margin: 0,
@@ -90,25 +90,43 @@ export default function RawPaste() {
         color: '#f87171',
         minHeight: '100vh'
       }}>
-        {error}
-      </pre>
+        <pre style={{ margin: 0, marginBottom: '1rem' }}>{error}</pre>
+        <Link 
+          to={`/p/${id}`} 
+          style={{ color: '#60a5fa', textDecoration: 'underline' }}
+        >
+          ← Back to formatted view
+        </Link>
+      </div>
     );
   }
 
   return (
-    <pre style={{ 
+    <div style={{ 
       fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace', 
       padding: '1rem', 
       margin: 0,
       background: '#0a0a0f',
       color: '#e2e8f0',
       minHeight: '100vh',
-      whiteSpace: 'pre-wrap',
-      wordBreak: 'break-word',
-      lineHeight: '1.5',
-      fontSize: '14px'
     }}>
-      {content}
-    </pre>
+      <div style={{ marginBottom: '0.5rem', fontSize: '12px' }}>
+        <Link 
+          to={`/p/${id}`} 
+          style={{ color: '#60a5fa', textDecoration: 'underline' }}
+        >
+          ← Back to formatted view
+        </Link>
+      </div>
+      <pre style={{ 
+        margin: 0,
+        whiteSpace: 'pre-wrap',
+        wordBreak: 'break-word',
+        lineHeight: '1.5',
+        fontSize: '14px'
+      }}>
+        {content}
+      </pre>
+    </div>
   );
 }
