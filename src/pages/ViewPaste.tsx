@@ -146,12 +146,31 @@ export default function ViewPaste() {
 
       const data = await response.json();
 
+      // Map API response fields to expected Paste interface
+      const mappedPaste: Paste = {
+        id: data.paste_id,
+        content: data.paste_content,
+        syntax: data.paste_type,
+        title: data.title,
+        expires_at: data.expires_at,
+        created_at: data.created_at,
+        views: data.views || 0,
+        burned: data.burned,
+        burn_after_read: data.burn_after_read,
+        // File fields (if present)
+        file_path: data.file_path,
+        file_name: data.file_name,
+        file_size: data.file_size,
+        file_type: data.file_type,
+        content_type: data.content_type,
+      };
+
       // Store in session for subsequent access
-      if (!data.burned) {
-        sessionStorage.setItem(`paste_${id}`, JSON.stringify(data));
+      if (!mappedPaste.burned) {
+        sessionStorage.setItem(`paste_${id}`, JSON.stringify(mappedPaste));
       }
 
-      setPaste(data);
+      setPaste(mappedPaste);
       setProtectedMeta(null);
       return true;
     } catch (err) {
