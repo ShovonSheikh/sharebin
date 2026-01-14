@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPassword, SUPABASE_FUNCTIONS_URL } from '@/lib/constants';
-import { Loader2, FileX, Home, Flame } from 'lucide-react';
+import { Loader2, FileX, Home, Flame, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Paste {
@@ -20,6 +20,7 @@ interface Paste {
   views: number;
   burn_after_read?: boolean;
   burned?: boolean;
+  password_protected?: boolean;
   // File upload fields
   file_path?: string | null;
   file_name?: string | null;
@@ -157,6 +158,7 @@ export default function ViewPaste() {
         views: data.views || 0,
         burned: data.burned,
         burn_after_read: data.burn_after_read,
+        password_protected: true, // Mark as password protected
         // File fields (if present)
         file_path: data.file_path,
         file_name: data.file_name,
@@ -231,6 +233,14 @@ export default function ViewPaste() {
     <Layout>
       <div className="container mx-auto px-4 py-8 lg:py-12">
         <div className="max-w-4xl mx-auto">
+          {/* Back Button */}
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2 -ml-2 mb-4">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
+          
           <PasteView paste={paste} />
         </div>
       </div>

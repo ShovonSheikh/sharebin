@@ -1,13 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatFileSize } from '@/lib/fileUtils';
-import { Download, FileText, Table, Presentation, File, ExternalLink } from 'lucide-react';
+import { Download, FileText, Table, Presentation, File, ExternalLink, Lock } from 'lucide-react';
 
 interface DocumentViewerProps {
   src: string;
   fileName: string;
   fileSize: number;
   fileType: string;
+  isProtected?: boolean;
 }
 
 function getDocumentIcon(fileType: string) {
@@ -44,8 +45,10 @@ function canPreview(fileType: string): boolean {
   return fileType.includes('pdf');
 }
 
-export function DocumentViewer({ src, fileName, fileSize, fileType }: DocumentViewerProps) {
+export function DocumentViewer({ src, fileName, fileSize, fileType, isProtected = false }: DocumentViewerProps) {
   const handleDownload = () => {
+    if (isProtected) return;
+    
     const a = document.createElement('a');
     a.href = src;
     a.download = fileName;
@@ -55,7 +58,7 @@ export function DocumentViewer({ src, fileName, fileSize, fileType }: DocumentVi
   };
 
   const typeName = getDocumentTypeName(fileType, fileName);
-  const showPreview = canPreview(fileType);
+  const showPreview = canPreview(fileType) && !isProtected;
 
   // Google Docs Viewer URL for PDF preview
   const previewUrl = showPreview ? src : null;
@@ -73,13 +76,24 @@ export function DocumentViewer({ src, fileName, fileSize, fileType }: DocumentVi
             <span>{typeName}</span>
             <span>•</span>
             <span>{formatFileSize(fileSize)}</span>
+            {isProtected && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-yellow-500">
+                  <Lock className="h-3 w-3" />
+                  Protected
+                </span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <Button onClick={handleDownload} className="gap-2">
-            <Download className="h-4 w-4" />
-            Download
-          </Button>
+          {!isProtected && (
+            <Button onClick={handleDownload} className="gap-2">
+              <Download className="h-4 w-4" />
+              Download
+            </Button>
+          )}
           {showPreview && (
             <Button variant="outline" asChild className="gap-2">
               <a href={src} target="_blank" rel="noopener noreferrer">
@@ -90,6 +104,23 @@ export function DocumentViewer({ src, fileName, fileSize, fileType }: DocumentVi
           )}
         </div>
       </div>
+
+      {/* Protected Notice */}
+      {isProtected && (
+        <div className="px-6 pb-6">
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="flex items-center gap-3 text-yellow-500">
+              <Lock className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Download Disabled</p>
+                <p className="text-sm opacity-80">
+                  This document is password protected. Downloads are not available for protected content.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* PDF Preview */}
       {previewUrl && (

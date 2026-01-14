@@ -7,6 +7,20 @@ export const FILE_TYPES = {
     maxSize: 10 * 1024 * 1024, // 10MB
     label: 'Images',
   },
+  video: {
+    extensions: ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v', '.ogv'] as string[],
+    mimeTypes: [
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/x-matroska',
+      'video/x-m4v',
+      'video/ogg',
+    ] as string[],
+    maxSize: 100 * 1024 * 1024, // 100MB
+    label: 'Videos',
+  },
   document: {
     extensions: ['.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.pdf', '.odt', '.ods', '.odp', '.txt', '.rtf', '.csv'] as string[],
     mimeTypes: [
@@ -46,7 +60,61 @@ export const FILE_TYPES = {
   },
 } as const;
 
-export type ContentType = 'text' | 'image' | 'document' | 'archive';
+export type ContentType = 'text' | 'image' | 'video' | 'document' | 'archive';
+
+// Extension to syntax mapping for auto-detection
+const extensionToSyntax: Record<string, string> = {
+  '.js': 'javascript',
+  '.jsx': 'javascript',
+  '.ts': 'typescript',
+  '.tsx': 'typescript',
+  '.py': 'python',
+  '.java': 'java',
+  '.cpp': 'cpp',
+  '.cc': 'cpp',
+  '.c': 'cpp',
+  '.h': 'cpp',
+  '.hpp': 'cpp',
+  '.cs': 'csharp',
+  '.go': 'go',
+  '.rs': 'rust',
+  '.php': 'php',
+  '.rb': 'ruby',
+  '.swift': 'swift',
+  '.kt': 'kotlin',
+  '.html': 'html',
+  '.htm': 'html',
+  '.css': 'css',
+  '.scss': 'scss',
+  '.sass': 'scss',
+  '.less': 'css',
+  '.json': 'json',
+  '.xml': 'xml',
+  '.yaml': 'yaml',
+  '.yml': 'yaml',
+  '.md': 'markdown',
+  '.markdown': 'markdown',
+  '.sql': 'sql',
+  '.sh': 'bash',
+  '.bash': 'bash',
+  '.zsh': 'bash',
+  '.ps1': 'powershell',
+  '.dockerfile': 'dockerfile',
+  '.tf': 'yaml', // terraform
+  '.toml': 'yaml',
+  '.ini': 'yaml',
+  '.cfg': 'yaml',
+  '.conf': 'yaml',
+  '.env': 'bash',
+  '.gitignore': 'bash',
+  '.txt': 'plaintext',
+  '.log': 'plaintext',
+};
+
+export function detectSyntaxFromExtension(filename: string): string {
+  const ext = getFileExtension(filename).toLowerCase();
+  return extensionToSyntax[ext] || 'plaintext';
+}
 
 export function getFileExtension(filename: string): string {
   const lastDot = filename.lastIndexOf('.');
@@ -67,6 +135,11 @@ export function detectContentType(file: File): ContentType | null {
   // Check images first
   if (FILE_TYPES.image.extensions.includes(extension) || FILE_TYPES.image.mimeTypes.includes(mimeType)) {
     return 'image';
+  }
+
+  // Check videos
+  if (FILE_TYPES.video.extensions.includes(extension) || FILE_TYPES.video.mimeTypes.includes(mimeType)) {
+    return 'video';
   }
 
   // Check archives
@@ -114,6 +187,7 @@ export function formatFileSize(bytes: number): string {
 export function getAllSupportedExtensions(): string[] {
   return [
     ...FILE_TYPES.image.extensions,
+    ...FILE_TYPES.video.extensions,
     ...FILE_TYPES.document.extensions,
     ...FILE_TYPES.archive.extensions,
   ];
@@ -122,6 +196,7 @@ export function getAllSupportedExtensions(): string[] {
 export function getAcceptString(): string {
   const allMimeTypes = [
     ...FILE_TYPES.image.mimeTypes,
+    ...FILE_TYPES.video.mimeTypes,
     ...FILE_TYPES.document.mimeTypes,
     ...FILE_TYPES.archive.mimeTypes,
   ];
@@ -133,6 +208,8 @@ export function getFileIcon(contentType: ContentType, mimeType?: string): string
   switch (contentType) {
     case 'image':
       return 'image';
+    case 'video':
+      return 'video';
     case 'archive':
       return 'archive';
     case 'document':
