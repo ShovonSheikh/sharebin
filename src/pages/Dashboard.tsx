@@ -6,10 +6,11 @@ import { UserPastes } from '@/components/dashboard/UserPastes';
 import { AnalyticsOverview } from '@/components/dashboard/AnalyticsOverview';
 import { ViewsChart } from '@/components/dashboard/ViewsChart';
 import { PopularPastes } from '@/components/dashboard/PopularPastes';
+import { ImageGallery } from '@/components/dashboard/ImageGallery';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useAnalytics } from '@/hooks/useAnalytics';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, ArrowLeft } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, loading } = useAuth();
@@ -43,6 +44,14 @@ export default function Dashboard() {
     <Layout>
       <div className="container mx-auto px-4 py-8 lg:py-12">
         <div className="max-w-4xl mx-auto space-y-8">
+          {/* Back Button */}
+          <Link to="/">
+            <Button variant="ghost" size="sm" className="gap-2 -ml-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Home
+            </Button>
+          </Link>
+
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
@@ -76,6 +85,9 @@ export default function Dashboard() {
               loading={analyticsLoading} 
             />
           </div>
+
+          {/* Image Gallery */}
+          <ImageGallery />
 
           {/* API Keys Section */}
           <ApiKeyManager />

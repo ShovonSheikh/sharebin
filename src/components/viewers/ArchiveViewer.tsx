@@ -1,13 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { formatFileSize, FILE_TYPES } from '@/lib/fileUtils';
-import { Download, Archive, Package, FileArchive } from 'lucide-react';
+import { Download, Archive, Package, FileArchive, Lock } from 'lucide-react';
 
 interface ArchiveViewerProps {
   src: string;
   fileName: string;
   fileSize: number;
   fileType: string;
+  isProtected?: boolean;
 }
 
 function getArchiveIcon(fileName: string) {
@@ -41,8 +42,10 @@ function getArchiveTypeName(fileName: string): string {
   return typeMap[ext || ''] || 'Archive';
 }
 
-export function ArchiveViewer({ src, fileName, fileSize, fileType }: ArchiveViewerProps) {
+export function ArchiveViewer({ src, fileName, fileSize, fileType, isProtected = false }: ArchiveViewerProps) {
   const handleDownload = () => {
+    if (isProtected) return;
+    
     const a = document.createElement('a');
     a.href = src;
     a.download = fileName;
@@ -66,32 +69,62 @@ export function ArchiveViewer({ src, fileName, fileSize, fileType }: ArchiveView
             <span>{typeName}</span>
             <span>•</span>
             <span>{formatFileSize(fileSize)}</span>
+            {isProtected && (
+              <>
+                <span>•</span>
+                <span className="flex items-center gap-1 text-yellow-500">
+                  <Lock className="h-3 w-3" />
+                  Protected
+                </span>
+              </>
+            )}
           </div>
         </div>
-        <Button onClick={handleDownload} className="gap-2">
-          <Download className="h-4 w-4" />
-          Download Archive
-        </Button>
+        {!isProtected && (
+          <Button onClick={handleDownload} className="gap-2">
+            <Download className="h-4 w-4" />
+            Download Archive
+          </Button>
+        )}
       </div>
 
-      {/* Supported Formats Info */}
-      <div className="px-6 pb-6">
-        <div className="p-4 bg-muted/50 rounded-lg">
-          <p className="text-sm text-muted-foreground mb-2 font-medium">
-            Supported archive formats:
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {FILE_TYPES.archive.extensions.map((ext) => (
-              <span 
-                key={ext} 
-                className="px-2 py-1 bg-secondary rounded text-xs font-mono"
-              >
-                {ext}
-              </span>
-            ))}
+      {/* Protected Notice */}
+      {isProtected && (
+        <div className="px-6 pb-6">
+          <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+            <div className="flex items-center gap-3 text-yellow-500">
+              <Lock className="h-5 w-5" />
+              <div>
+                <p className="font-medium">Download Disabled</p>
+                <p className="text-sm opacity-80">
+                  This archive is password protected. Downloads are not available for protected content.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Supported Formats Info */}
+      {!isProtected && (
+        <div className="px-6 pb-6">
+          <div className="p-4 bg-muted/50 rounded-lg">
+            <p className="text-sm text-muted-foreground mb-2 font-medium">
+              Supported archive formats:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {FILE_TYPES.archive.extensions.map((ext) => (
+                <span 
+                  key={ext} 
+                  className="px-2 py-1 bg-secondary rounded text-xs font-mono"
+                >
+                  {ext}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

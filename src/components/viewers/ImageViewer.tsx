@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ZoomIn, ZoomOut, RotateCw, Download, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCw, Download, Maximize2, Lock } from 'lucide-react';
 
 interface ImageViewerProps {
   src: string;
   alt: string;
   fileName: string;
   fileSize?: number;
+  isProtected?: boolean;
 }
 
-export function ImageViewer({ src, alt, fileName, fileSize }: ImageViewerProps) {
+export function ImageViewer({ src, alt, fileName, fileSize, isProtected = false }: ImageViewerProps) {
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -20,6 +21,8 @@ export function ImageViewer({ src, alt, fileName, fileSize }: ImageViewerProps) 
   const handleRotate = () => setRotation(prev => (prev + 90) % 360);
 
   const handleDownload = async () => {
+    if (isProtected) return;
+    
     try {
       const response = await fetch(src);
       const blob = await response.blob();
@@ -64,18 +67,39 @@ export function ImageViewer({ src, alt, fileName, fileSize }: ImageViewerProps) 
             </Button>
           </div>
           <div className="flex items-center gap-2">
+            {isProtected && (
+              <div className="flex items-center gap-2 text-yellow-500 mr-2">
+                <Lock className="h-4 w-4" />
+                <span className="text-xs font-medium">Protected</span>
+              </div>
+            )}
             <Button variant="outline" size="sm" onClick={toggleFullscreen}>
               <Maximize2 className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="h-4 w-4 mr-1" />
-              Download
-            </Button>
+            {!isProtected && (
+              <Button variant="outline" size="sm" onClick={handleDownload}>
+                <Download className="h-4 w-4 mr-1" />
+                Download
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Image Container */}
-        <div className="relative overflow-auto bg-[#1a1a1a] min-h-[300px] max-h-[600px] flex items-center justify-center p-4">
+        <div 
+          className={`relative overflow-auto bg-[#1a1a1a] min-h-[300px] max-h-[600px] flex items-center justify-center p-4 ${isProtected ? 'select-none' : ''}`}
+          onContextMenu={isProtected ? (e) => e.preventDefault() : undefined}
+        >
+          {/* Protection Overlay */}
+          {isProtected && (
+            <div 
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{
+                background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.02) 10px, rgba(255,255,255,0.02) 20px)',
+              }}
+            />
+          )}
+          
           <img
             src={src}
             alt={alt}
@@ -84,9 +108,10 @@ export function ImageViewer({ src, alt, fileName, fileSize }: ImageViewerProps) 
               transition: 'transform 0.2s ease-out',
               maxWidth: zoom === 1 ? '100%' : 'none',
               maxHeight: zoom === 1 ? '100%' : 'none',
+              pointerEvents: isProtected ? 'none' : 'auto',
             }}
             className="object-contain"
-            draggable={false}
+            draggable={!isProtected}
           />
         </div>
       </Card>
@@ -96,7 +121,15 @@ export function ImageViewer({ src, alt, fileName, fileSize }: ImageViewerProps) 
         <div 
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
           onClick={toggleFullscreen}
+          onContextMenu={isProtected ? (e) => e.preventDefault() : undefined}
         >
+          {isProtected && (
+            <div className="absolute top-4 left-4 flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full">
+              <Lock className="h-3 w-3 text-yellow-500" />
+              <span className="text-xs text-yellow-500 font-medium">Protected Content</span>
+            </div>
+          )}
+          
           <div className="absolute top-4 right-4 flex items-center gap-2">
             <Button variant="secondary" size="sm" onClick={(e) => { e.stopPropagation(); handleZoomOut(); }}>
               <ZoomOut className="h-4 w-4" />
@@ -114,16 +147,28 @@ export function ImageViewer({ src, alt, fileName, fileSize }: ImageViewerProps) 
               ✕
             </Button>
           </div>
+          
+          {/* Protection Overlay for Fullscreen */}
+          {isProtected && (
+            <div 
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.01) 10px, rgba(255,255,255,0.01) 20px)',
+              }}
+            />
+          )}
+          
           <img
             src={src}
             alt={alt}
             style={{
               transform: `scale(${zoom}) rotate(${rotation}deg)`,
               transition: 'transform 0.2s ease-out',
+              pointerEvents: isProtected ? 'none' : 'auto',
             }}
-            className="max-w-[90vw] max-h-[90vh] object-contain"
+            className={`max-w-[90vw] max-h-[90vh] object-contain ${isProtected ? 'select-none' : ''}`}
             onClick={(e) => e.stopPropagation()}
-            draggable={false}
+            draggable={!isProtected}
           />
         </div>
       )}

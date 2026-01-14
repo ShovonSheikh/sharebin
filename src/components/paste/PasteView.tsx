@@ -3,12 +3,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Copy, Check, Plus, Clock, Eye, Code, FileText, Flame, ExternalLink, FileCode, Image, FileArchive, File } from 'lucide-react';
+import { Copy, Check, Plus, Clock, Eye, Code, FileText, Flame, ExternalLink, FileCode, Image, FileArchive, File, Video } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { CodeBlock } from '@/components/paste/CodeBlock';
 import { ImageViewer } from '@/components/viewers/ImageViewer';
+import { VideoViewer } from '@/components/viewers/VideoViewer';
 import { ImageShareLinks } from '@/components/viewers/ImageShareLinks';
 import { DocumentViewer } from '@/components/viewers/DocumentViewer';
 import { ArchiveViewer } from '@/components/viewers/ArchiveViewer';
@@ -28,6 +29,7 @@ interface Paste {
   views: number;
   burn_after_read?: boolean;
   burned?: boolean;
+  password_protected?: boolean;
   // File upload fields
   file_path?: string | null;
   file_name?: string | null;
@@ -51,8 +53,10 @@ export function PasteView({ paste }: PasteViewProps) {
 
   const isFileUpload = paste.content_type && paste.content_type !== 'text' && paste.file_path;
   const isImage = paste.content_type === 'image';
+  const isVideo = paste.content_type === 'video';
   const isDocument = paste.content_type === 'document';
   const isArchive = paste.content_type === 'archive';
+  const isProtected = paste.password_protected || false;
 
   const pasteUrl = `${window.location.origin}/p/${paste.id}`;
   const rawUrl = `${window.location.origin}/raw/${paste.id}`;
@@ -98,6 +102,7 @@ export function PasteView({ paste }: PasteViewProps) {
   const getContentTypeIcon = () => {
     switch (paste.content_type) {
       case 'image': return <Image className="h-3 w-3 mr-1" />;
+      case 'video': return <Video className="h-3 w-3 mr-1" />;
       case 'document': return <File className="h-3 w-3 mr-1" />;
       case 'archive': return <FileArchive className="h-3 w-3 mr-1" />;
       default: return null;
@@ -197,12 +202,23 @@ export function PasteView({ paste }: PasteViewProps) {
                 alt={paste.file_name || 'Image'} 
                 fileName={paste.file_name || 'image'}
                 fileSize={paste.file_size || undefined}
+                isProtected={isProtected}
               />
-              <ImageShareLinks 
-                pasteId={paste.id} 
-                fileName={paste.file_name || 'image'} 
-              />
+              {!isProtected && (
+                <ImageShareLinks 
+                  pasteId={paste.id} 
+                  fileName={paste.file_name || 'image'} 
+                />
+              )}
             </>
+          )}
+          {isVideo && (
+            <VideoViewer
+              src={fileUrl}
+              fileName={paste.file_name || 'video'}
+              fileSize={paste.file_size || undefined}
+              isProtected={isProtected}
+            />
           )}
           {isDocument && (
             <DocumentViewer
@@ -210,6 +226,7 @@ export function PasteView({ paste }: PasteViewProps) {
               fileName={paste.file_name || 'document'}
               fileSize={paste.file_size || 0}
               fileType={paste.file_type || 'application/octet-stream'}
+              isProtected={isProtected}
             />
           )}
           {isArchive && (
@@ -218,6 +235,7 @@ export function PasteView({ paste }: PasteViewProps) {
               fileName={paste.file_name || 'archive'}
               fileSize={paste.file_size || 0}
               fileType={paste.file_type || 'application/octet-stream'}
+              isProtected={isProtected}
             />
           )}
         </>
@@ -277,7 +295,7 @@ export function PasteView({ paste }: PasteViewProps) {
             </div>
 
             {/* Direct Image URL */}
-            {isImage && directImageUrl && !paste.burn_after_read && (
+            {isImage && directImageUrl && !paste.burn_after_read && !isProtected && (
               <div className="space-y-2">
                 <p className="text-sm font-medium text-foreground flex items-center gap-2">
                   <Image className="h-4 w-4" />
