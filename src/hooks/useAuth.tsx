@@ -1,62 +1,44 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { createContext, useContext, ReactNode, useCallback, useMemo } from 'react';
+import { useUser, useClerk, useAuth as useClerkAuth } from '@clerk/clerk-react';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: {
+    id: string;
+    email: string | undefined;
+  } | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  isSignedIn: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signOut: clerkSignOut } = useClerk();
+  const { isSignedIn } = useClerkAuth();
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
+  const user = useMemo(() => {
+    if (!clerkUser) return null;
+    return {
+      id: clerkUser.id,
+      email: clerkUser.primaryEmailAddress?.emailAddress,
+    };
+  }, [clerkUser]);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+  const signOut = useCallback(async () => {
+    await clerkSignOut();
+  }, [clerkSignOut]);
 
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error };
-  };
-
-  const signUp = async (email: string, password: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { emailRedirectTo: redirectUrl },
-    });
-    return { error };
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const value = useMemo(() => ({
+    user,
+    loading: !isLoaded,
+    signOut,
+    isSignedIn: !!isSignedIn,
+  }), [user, isLoaded, signOut, isSignedIn]);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

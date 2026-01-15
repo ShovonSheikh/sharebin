@@ -19,7 +19,8 @@ import {
   getAcceptString, 
   FILE_TYPES,
   generateFilePath,
-  ContentType 
+  ContentType,
+  detectSyntaxFromExtension
 } from '@/lib/fileUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,6 +48,7 @@ interface UploadedFile {
   file: File;
   preview?: string;
   contentType: ContentType;
+  detectedSyntax?: string;
 }
 
 export function FileUploadForm() {
@@ -81,6 +83,11 @@ export function FileUploadForm() {
     // Create preview for images
     if (validation.contentType === 'image') {
       newFile.preview = URL.createObjectURL(file);
+    }
+
+    // Auto-detect syntax for text-based files (documents like .txt, code files, etc.)
+    if (validation.contentType === 'document') {
+      newFile.detectedSyntax = detectSyntaxFromExtension(file.name);
     }
 
     setUploadedFile(newFile);
@@ -160,7 +167,7 @@ export function FileUploadForm() {
         .insert({
           content: '', // No text content for file uploads
           title: title.trim() || uploadedFile.file.name,
-          syntax: 'plaintext',
+          syntax: uploadedFile.detectedSyntax || 'plaintext',
           expires_at: expiresAt?.toISOString() || null,
           user_id: user?.id || null,
           password_hash: passwordHash,
