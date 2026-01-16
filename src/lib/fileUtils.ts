@@ -176,6 +176,61 @@ export function validateFile(file: File): { valid: boolean; error?: string; cont
   return { valid: true, contentType };
 }
 
+import { TIER_LIMITS, type SubscriptionTier, formatStorageLimit, getTierUpgradeMessage } from './tierLimits';
+
+export interface TierValidationResult {
+  valid: boolean;
+  error?: string;
+  upgradeMessage?: string;
+  contentType?: ContentType;
+}
+
+export function validateFileForTier(
+  file: File,
+  tier: SubscriptionTier = 'free',
+  currentStorageUsed: number = 0
+): TierValidationResult {
+  // First validate file type
+  const contentType = detectContentType(file);
+  
+  if (!contentType) {
+    return { 
+      valid: false, 
+      error: `Unsupported file type. Supported formats: ${getAllSupportedExtensions().join(', ')}` 
+    };
+  }
+
+  const tierLimits = TIER_LIMITS[tier];
+  
+  // Map content type to tier limit key
+  const limitKey = contentType === 'text' ? 'document' : contentType;
+  const maxSizeForType = tierLimits[limitKey as keyof typeof tierLimits] as number;
+
+  // Check file size against tier limit
+  if (typeof maxSizeForType === 'number' && file.size > maxSizeForType) {
+    const upgradeMessage = getTierUpgradeMessage(tier, file.size, limitKey);
+    return {
+      valid: false,
+      error: `File exceeds ${tierLimits.label} tier limit of ${formatStorageLimit(maxSizeForType)}`,
+      upgradeMessage,
+      contentType,
+    };
+  }
+
+  // Check total storage limit
+  if (isFinite(tierLimits.totalStorage) && currentStorageUsed + file.size > tierLimits.totalStorage) {
+    const remainingStorage = tierLimits.totalStorage - currentStorageUsed;
+    return {
+      valid: false,
+      error: `Insufficient storage. You have ${formatStorageLimit(Math.max(0, remainingStorage))} remaining.`,
+      upgradeMessage: `Upgrade to ${tier === 'free' ? 'Pro' : 'Business'} for more storage`,
+      contentType,
+    };
+  }
+
+  return { valid: true, contentType };
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
   const k = 1024;
