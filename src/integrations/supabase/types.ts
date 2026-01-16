@@ -70,21 +70,39 @@ export type Database = {
       }
       profiles: {
         Row: {
+          clerk_user_id: string | null
           created_at: string
           email: string | null
+          first_name: string | null
           id: string
+          image_url: string | null
+          last_name: string | null
+          storage_used: number | null
+          subscription_tier: string | null
           updated_at: string
         }
         Insert: {
+          clerk_user_id?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id: string
+          image_url?: string | null
+          last_name?: string | null
+          storage_used?: number | null
+          subscription_tier?: string | null
           updated_at?: string
         }
         Update: {
+          clerk_user_id?: string | null
           created_at?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          image_url?: string | null
+          last_name?: string | null
+          storage_used?: number | null
+          subscription_tier?: string | null
           updated_at?: string
         }
         Relationships: []
