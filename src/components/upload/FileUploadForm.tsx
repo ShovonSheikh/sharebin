@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { EXPIRATION_OPTIONS, getExpirationDate, hashPassword } from '@/lib/constants';
 import { 
-  validateFile, 
+  validateFileForTier, 
   formatFileSize, 
   getAcceptString, 
   FILE_TYPES,
@@ -22,8 +22,10 @@ import {
   ContentType,
   detectSyntaxFromExtension
 } from '@/lib/fileUtils';
+import { TIER_LIMITS, formatStorageLimit } from '@/lib/tierLimits';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { toast } from 'sonner';
 import { 
   Upload, 
@@ -41,7 +43,8 @@ import {
   Share2,
   Image,
   File,
-  Package
+  Package,
+  Sparkles
 } from 'lucide-react';
 
 interface UploadedFile {
@@ -63,15 +66,29 @@ export function FileUploadForm() {
   const [createdPasteUrl, setCreatedPasteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [upgradePrompt, setUpgradePrompt] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
 
+  const userTier = profile?.subscription_tier || 'free';
+  const tierLimits = TIER_LIMITS[userTier];
+
   const handleFileSelect = useCallback((file: File) => {
-    const validation = validateFile(file);
+    setUpgradePrompt(null);
+    
+    const validation = validateFileForTier(
+      file, 
+      userTier, 
+      profile?.storage_used || 0
+    );
     
     if (!validation.valid) {
       toast.error(validation.error);
+      if (validation.upgradeMessage) {
+        setUpgradePrompt(validation.upgradeMessage);
+      }
       return;
     }
 
@@ -91,7 +108,7 @@ export function FileUploadForm() {
     }
 
     setUploadedFile(newFile);
-  }, []);
+  }, [userTier, profile?.storage_used]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -343,23 +360,42 @@ export function FileUploadForm() {
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Image className="h-4 w-4" />
-                Images (max 10MB)
+                Images (max {formatStorageLimit(tierLimits.image)})
               </span>
               <span className="flex items-center gap-1">
                 <File className="h-4 w-4" />
-                Documents (max 25MB)
+                Documents (max {formatStorageLimit(tierLimits.document)})
               </span>
               <span className="flex items-center gap-1">
                 <Package className="h-4 w-4" />
-                Archives (max 50MB)
+                Archives (max {formatStorageLimit(tierLimits.archive)})
               </span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
               Supported: PNG, JPG, GIF, WEBP, SVG • PDF, DOC, XLS, PPT • ZIP, RAR, 7Z, TAR.GZ
             </p>
+            {userTier !== 'business' && (
+              <p className="text-xs text-primary mt-2 flex items-center justify-center gap-1">
+                <Sparkles className="h-3 w-3" />
+                {tierLimits.label} tier • Upgrade for larger uploads
+              </p>
+            )}
           </div>
         )}
       </div>
+
+      {/* Upgrade Prompt */}
+      {upgradePrompt && (
+        <div className="flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+          <Sparkles className="h-5 w-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-primary">{upgradePrompt}</p>
+          </div>
+          <Button variant="outline" size="sm" className="shrink-0">
+            Upgrade
+          </Button>
+        </div>
+      )}
 
       {/* Upload Progress */}
       {loading && uploadProgress > 0 && (
