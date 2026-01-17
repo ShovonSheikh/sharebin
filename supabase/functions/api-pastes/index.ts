@@ -652,7 +652,7 @@ Deno.serve(async (req) => {
                 });
             }
 
-            const siteUrl = "https://pastely.app";
+            const siteUrl = "https://openpaste.vercel.app";
 
             return new Response(JSON.stringify({
                 paste_id: data.id,
