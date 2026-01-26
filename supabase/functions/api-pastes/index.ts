@@ -9,6 +9,22 @@ const corsHeaders = {
 const RATE_LIMIT_PER_MINUTE = 60;
 const RATE_LIMIT_PER_HOUR = 1000;
 
+// Tier limits for API (text pastes)
+const TIER_LIMITS: Record<string, { maxPasteSize: number; totalStorage: number }> = {
+    free: {
+        maxPasteSize: 10 * 1024 * 1024,     // 10 MB
+        totalStorage: 500 * 1024 * 1024,    // 500 MB
+    },
+    pro: {
+        maxPasteSize: 25 * 1024 * 1024,     // 25 MB
+        totalStorage: 10 * 1024 * 1024 * 1024, // 10 GB
+    },
+    business: {
+        maxPasteSize: 50 * 1024 * 1024,     // 50 MB
+        totalStorage: Infinity,
+    },
+};
+
 interface CreatePasteRequest {
     content: string;
     title?: string;
@@ -55,6 +71,37 @@ async function hashPassword(password: string): Promise<string> {
 
 async function hashApiKey(key: string): Promise<string> {
     return hashPassword(key);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function getUserTierAndStorage(supabase: any, clerkUserId: string): Promise<{ tier: string; storageUsed: number }> {
+    const { data } = await supabase
+        .from('profiles')
+        .select('subscription_tier, storage_used')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+    
+    return {
+        tier: data?.subscription_tier || 'free',
+        storageUsed: data?.storage_used || 0,
+    };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function updateStorageUsed(supabase: any, clerkUserId: string, sizeChange: number): Promise<void> {
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, storage_used')
+        .eq('clerk_user_id', clerkUserId)
+        .maybeSingle();
+    
+    if (profile) {
+        const newStorageUsed = Math.max(0, (profile.storage_used || 0) + sizeChange);
+        await supabase
+            .from('profiles')
+            .update({ storage_used: newStorageUsed })
+            .eq('id', profile.id);
+    }
 }
 
 // Rate limiting function
@@ -627,6 +674,39 @@ Deno.serve(async (req) => {
                 });
             }
 
+            // Get user tier and storage for validation
+            const { tier, storageUsed } = await getUserTierAndStorage(supabase, userId);
+            const limits = TIER_LIMITS[tier] || TIER_LIMITS.free;
+            const contentSize = new TextEncoder().encode(body.content).length;
+
+            // Validate paste size against tier limits
+            if (contentSize > limits.maxPasteSize) {
+                return new Response(JSON.stringify({
+                    error: "Content exceeds tier limit",
+                    limit: limits.maxPasteSize,
+                    size: contentSize,
+                    tier: tier,
+                    upgrade_url: "https://openpaste.vercel.app/pricing"
+                }), {
+                    status: 413,
+                    headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
+                });
+            }
+
+            // Validate total storage quota
+            if (isFinite(limits.totalStorage) && storageUsed + contentSize > limits.totalStorage) {
+                return new Response(JSON.stringify({
+                    error: "Storage quota exceeded",
+                    used: storageUsed,
+                    limit: limits.totalStorage,
+                    tier: tier,
+                    upgrade_url: "https://openpaste.vercel.app/pricing"
+                }), {
+                    status: 507,
+                    headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)
+                });
+            }
+
             const expiresAt = body.expiration ? getExpirationDate(body.expiration) : null;
             const passwordHash = body.password ? await hashPassword(body.password) : null;
 
@@ -639,7 +719,8 @@ Deno.serve(async (req) => {
                     expires_at: expiresAt?.toISOString() || null,
                     user_id: userId,
                     password_hash: passwordHash,
-                    burn_after_read: body.burn_after_read || false
+                    burn_after_read: body.burn_after_read || false,
+                    file_size: contentSize, // Track content size for storage calculation
                 })
                 .select("id")
                 .single();
@@ -651,6 +732,9 @@ Deno.serve(async (req) => {
                     headers: { ...corsHeaders, "Content-Type": "application/json" }
                 });
             }
+
+            // Update storage used
+            await updateStorageUsed(supabase, userId, contentSize);
 
             const siteUrl = "https://openpaste.vercel.app";
 
@@ -699,7 +783,7 @@ Deno.serve(async (req) => {
 
             const { data: paste } = await supabase
                 .from("shares")
-                .select("user_id")
+                .select("user_id, file_size")
                 .eq("id", pasteId)
                 .maybeSingle();
 
@@ -711,6 +795,12 @@ Deno.serve(async (req) => {
             }
 
             await supabase.from("shares").delete().eq("id", pasteId);
+            
+            // Decrement storage used
+            if (paste.file_size && paste.file_size > 0) {
+                await updateStorageUsed(supabase, userId, -paste.file_size);
+            }
+
             return new Response(JSON.stringify({ message: "Paste deleted successfully" }), {
                 status: 200,
                 headers: addRateLimitHeaders({ ...corsHeaders, "Content-Type": "application/json" }, rateLimit)

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { hashPassword, SUPABASE_FUNCTIONS_URL } from '@/lib/constants';
+import { updateStorageUsed } from '@/lib/storageUtils';
+import { useAuth } from '@/hooks/useAuth';
 import { Loader2, FileX, Home, Flame, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -41,6 +43,7 @@ interface ProtectedPasteMeta {
 
 export default function ViewPaste() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [paste, setPaste] = useState<Paste | null>(null);
   const [protectedMeta, setProtectedMeta] = useState<ProtectedPasteMeta | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +109,12 @@ export default function ViewPaste() {
         if (data.file_path) {
           await supabase.storage.from('uploads').remove([data.file_path]);
         }
+        
+        // Decrement storage used if this was user's content
+        if (data.user_id && data.file_size && data.file_size > 0) {
+          await updateStorageUsed(data.user_id, -data.file_size);
+        }
+        
         // Delete the paste after fetching
         const { error: deleteError } = await supabase.from('shares').delete().eq('id', id);
         if (deleteError) {

@@ -7,6 +7,7 @@ import { Key, Copy, Check, RefreshCw, Eye, EyeOff, Trash2, Loader2 } from 'lucid
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { generateApiKey, hashApiKey, formatDate } from '@/lib/constants';
+import { verifyApiKeyOwnership } from '@/lib/storageUtils';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -35,6 +36,7 @@ export function ApiKeyManager() {
   const [showKey, setShowKey] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -92,7 +94,18 @@ export function ApiKeyManager() {
   };
 
   const deleteKey = async (keyId: string) => {
+    if (!user?.id) return;
+    
+    setDeleting(keyId);
     try {
+      // Verify ownership before deleting
+      const owned = await verifyApiKeyOwnership(keyId, user.id);
+      
+      if (!owned) {
+        toast.error('You do not have permission to delete this API key');
+        return;
+      }
+
       const { error } = await supabase
         .from('api_keys')
         .delete()
@@ -105,6 +118,8 @@ export function ApiKeyManager() {
     } catch (error) {
       console.error('Error deleting API key:', error);
       toast.error('Failed to delete API key');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -198,8 +213,17 @@ export function ApiKeyManager() {
 
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-destructive">
-                      <Trash2 className="h-4 w-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive"
+                      disabled={deleting === key.id}
+                    >
+                      {deleting === key.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>

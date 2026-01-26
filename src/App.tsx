@@ -10,6 +10,7 @@ import ViewPaste from "./pages/ViewPaste";
 import RawPaste from "./pages/RawPaste";
 import EmbedPaste from "./pages/EmbedPaste";
 import Dashboard from "./pages/Dashboard";
+import Subscription from "./pages/Subscription";
 import ApiDocs from "./pages/ApiDocs";
 import NotFound from "./pages/NotFound";
 import { Layout } from "./components/layout/Layout";
@@ -107,6 +108,7 @@ const App = () => (
               <Route path="/sign-in/*" element={<SignInPage />} />
               <Route path="/sign-up/*" element={<SignUpPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/subscription" element={<Subscription />} />
               <Route path="/docs" element={<ApiDocs />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
