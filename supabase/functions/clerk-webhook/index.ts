@@ -17,9 +17,16 @@ interface ClerkUser {
   };
 }
 
+interface ClerkSubscription {
+  id: string;
+  user_id: string;
+  plan_id: string;
+  status: string;
+}
+
 interface WebhookEvent {
   type: string;
-  data: ClerkUser;
+  data: ClerkUser | ClerkSubscription;
 }
 
 async function verifyWebhookSignature(
@@ -77,6 +84,18 @@ async function verifyWebhookSignature(
   }
 }
 
+// Map Clerk plan IDs to subscription tiers
+function mapPlanToTier(planId: string): 'free' | 'pro' | 'business' {
+  // Map your Clerk Billing plan IDs to tiers
+  // You'll need to update these with your actual Clerk plan IDs
+  const planMapping: Record<string, 'pro' | 'business'> = {
+    // Example: 'plan_xxx': 'pro',
+    // 'plan_yyy': 'business',
+  };
+  
+  return planMapping[planId] || 'free';
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -119,9 +138,9 @@ Deno.serve(async (req) => {
     }
 
     const event: WebhookEvent = JSON.parse(payload);
-    const { type, data: user } = event;
+    const { type, data } = event;
 
-    console.log(`Processing Clerk webhook: ${type} for user ${user.id}`);
+    console.log(`Processing Clerk webhook: ${type}`);
 
     // Initialize Supabase client with service role for admin access
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -129,14 +148,15 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get primary email
-    const primaryEmail = user.email_addresses.find(
-      email => email.id === user.primary_email_address_id
-    )?.email_address;
-
     switch (type) {
       case 'user.created': {
+        const user = data as ClerkUser;
         console.log(`Creating profile for Clerk user: ${user.id}`);
+        
+        // Get primary email
+        const primaryEmail = user.email_addresses.find(
+          email => email.id === user.primary_email_address_id
+        )?.email_address;
         
         const { error } = await supabase
           .from('profiles')
@@ -161,7 +181,13 @@ Deno.serve(async (req) => {
       }
 
       case 'user.updated': {
+        const user = data as ClerkUser;
         console.log(`Updating profile for Clerk user: ${user.id}`);
+        
+        // Get primary email
+        const primaryEmail = user.email_addresses.find(
+          email => email.id === user.primary_email_address_id
+        )?.email_address;
         
         const { error } = await supabase
           .from('profiles')
@@ -185,49 +211,93 @@ Deno.serve(async (req) => {
       }
 
       case 'user.deleted': {
+        const user = data as ClerkUser;
         console.log(`Deleting data for Clerk user: ${user.id}`);
         
-        // First get the profile to find the internal ID
-        const { data: profile } = await supabase
+        // Delete user's shares using Clerk ID directly
+        // (user_id column in shares now stores Clerk IDs as TEXT)
+        const { error: sharesError } = await supabase
+          .from('shares')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (sharesError) {
+          console.error('Error deleting user shares:', sharesError);
+        }
+
+        // Delete user's API keys using Clerk ID directly
+        const { error: apiKeysError } = await supabase
+          .from('api_keys')
+          .delete()
+          .eq('user_id', user.id);
+
+        if (apiKeysError) {
+          console.error('Error deleting user API keys:', apiKeysError);
+        }
+
+        // Delete the profile
+        const { error: profileError } = await supabase
           .from('profiles')
-          .select('id')
-          .eq('clerk_user_id', user.id)
-          .single();
+          .delete()
+          .eq('clerk_user_id', user.id);
 
-        if (profile) {
-          // Delete user's shares
-          const { error: sharesError } = await supabase
-            .from('shares')
-            .delete()
-            .eq('user_id', profile.id);
-
-          if (sharesError) {
-            console.error('Error deleting user shares:', sharesError);
-          }
-
-          // Delete user's API keys
-          const { error: apiKeysError } = await supabase
-            .from('api_keys')
-            .delete()
-            .eq('user_id', profile.id);
-
-          if (apiKeysError) {
-            console.error('Error deleting user API keys:', apiKeysError);
-          }
-
-          // Delete the profile
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .delete()
-            .eq('clerk_user_id', user.id);
-
-          if (profileError) {
-            console.error('Error deleting profile:', profileError);
-            throw profileError;
-          }
+        if (profileError) {
+          console.error('Error deleting profile:', profileError);
+          throw profileError;
         }
         
-        console.log(`All data deleted for user: ${user.id}`);
+        console.log(`All data deleted for Clerk user: ${user.id}`);
+        break;
+      }
+
+      // Clerk Billing subscription events
+      case 'subscription.created':
+      case 'subscription.updated': {
+        const subscription = data as ClerkSubscription;
+        console.log(`Subscription ${type} for user: ${subscription.user_id}`);
+        
+        // Map plan ID to tier
+        const tier = mapPlanToTier(subscription.plan_id);
+        
+        // Update user's subscription tier
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            subscription_tier: tier,
+            clerk_subscription_id: subscription.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('clerk_user_id', subscription.user_id);
+
+        if (error) {
+          console.error('Error updating subscription:', error);
+          throw error;
+        }
+        
+        console.log(`Subscription updated for user ${subscription.user_id}: ${tier}`);
+        break;
+      }
+
+      case 'subscription.deleted': {
+        const subscription = data as ClerkSubscription;
+        console.log(`Subscription cancelled for user: ${subscription.user_id}`);
+        
+        // Downgrade to free tier
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            subscription_tier: 'free',
+            clerk_subscription_id: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('clerk_user_id', subscription.user_id);
+
+        if (error) {
+          console.error('Error cancelling subscription:', error);
+          throw error;
+        }
+        
+        console.log(`Subscription cancelled for user ${subscription.user_id}`);
         break;
       }
 

@@ -7,6 +7,7 @@ import { FileText, ExternalLink, Trash2, Clock, Eye, Loader2 } from 'lucide-reac
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { formatDate } from '@/lib/constants';
+import { updateStorageUsed, verifyShareOwnership } from '@/lib/storageUtils';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -28,6 +29,7 @@ interface Paste {
   created_at: string;
   expires_at: string | null;
   views: number;
+  file_size: number | null;
 }
 
 export function UserPastes() {
@@ -46,7 +48,7 @@ export function UserPastes() {
     try {
       const { data, error } = await supabase
         .from('shares')
-        .select('id, title, content, syntax, created_at, expires_at, views')
+        .select('id, title, content, syntax, created_at, expires_at, views, file_size')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
@@ -61,14 +63,29 @@ export function UserPastes() {
   };
 
   const deletePaste = async (pasteId: string) => {
+    if (!user?.id) return;
+    
     setDeleting(pasteId);
     try {
+      // Verify ownership before deleting
+      const { owned, share } = await verifyShareOwnership(pasteId, user.id);
+      
+      if (!owned) {
+        toast.error('You do not have permission to delete this paste');
+        return;
+      }
+
       const { error } = await supabase
         .from('shares')
         .delete()
         .eq('id', pasteId);
 
       if (error) throw error;
+
+      // Decrement storage used if file had a size
+      if (share?.file_size && share.file_size > 0) {
+        await updateStorageUsed(user.id, -share.file_size);
+      }
 
       setPastes(pastes.filter(p => p.id !== pasteId));
       toast.success('Paste deleted');

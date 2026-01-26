@@ -23,6 +23,7 @@ import {
   detectSyntaxFromExtension
 } from '@/lib/fileUtils';
 import { TIER_LIMITS, formatStorageLimit } from '@/lib/tierLimits';
+import { updateStorageUsed } from '@/lib/storageUtils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -200,6 +201,11 @@ export function FileUploadForm() {
 
       if (insertError) throw insertError;
       setUploadProgress(100);
+
+      // Increment storage used for the user
+      if (user?.id && uploadedFile) {
+        await updateStorageUsed(user.id, uploadedFile.file.size);
+      }
 
       const features = [];
       if (password) features.push('password protected');
