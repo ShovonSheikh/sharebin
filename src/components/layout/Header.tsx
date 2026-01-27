@@ -19,6 +19,11 @@ export function Header() {
         </Link>
 
         <nav className="flex items-center gap-4">
+          <Link to="/pricing">
+            <Button variant="ghost" size="sm">
+              Pricing
+            </Button>
+          </Link>
           <Link to="/docs">
             <Button variant="ghost" size="sm" className="gap-2">
               <BookOpen className="h-4 w-4" />

@@ -18,7 +18,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     archive: 50 * 1024 * 1024,      // 50 MB
     totalStorage: 500 * 1024 * 1024, // 500 MB
     label: 'Free',
-    description: 'Basic file sharing with essential features',
+    description: 'Get started with basic file sharing',
   },
   pro: {
     image: 25 * 1024 * 1024,         // 25 MB
@@ -27,7 +27,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     archive: 200 * 1024 * 1024,      // 200 MB
     totalStorage: 10 * 1024 * 1024 * 1024, // 10 GB
     label: 'Pro',
-    description: 'Enhanced limits for power users',
+    description: 'Expanded limits for regular users',
   },
   business: {
     image: 50 * 1024 * 1024,         // 50 MB
@@ -36,7 +36,7 @@ export const TIER_LIMITS: Record<SubscriptionTier, TierLimits> = {
     archive: 500 * 1024 * 1024,      // 500 MB
     totalStorage: Infinity,           // Unlimited
     label: 'Business',
-    description: 'Maximum limits for teams and enterprises',
+    description: 'Unlimited storage for power users and teams',
   },
 };
 
