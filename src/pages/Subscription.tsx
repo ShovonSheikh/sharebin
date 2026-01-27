@@ -12,8 +12,8 @@ import { Crown, Zap, Building, Check, ArrowLeft } from 'lucide-react';
 
 // TODO: Replace with actual Clerk plan IDs after creating plans in Clerk Dashboard
 const CLERK_PLAN_IDS = {
-  pro: 'cplan_pro_placeholder',
-  business: 'cplan_business_placeholder',
+  pro: 'cplan_38pjHQQb8yLiiVMAJ01aSWmB0IC',
+  business: 'cplan_38pjahklnVTDgDIU9jnDUQtgTrp',
 };
 
 const PLAN_FEATURES = {
