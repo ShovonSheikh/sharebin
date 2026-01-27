@@ -4,27 +4,57 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { useUserProfile } from '@/hooks/useUserProfile';
-import { useAuth } from '@/hooks/useAuth';
 import { TIER_LIMITS, formatStorageLimit } from '@/lib/tierLimits';
 import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react';
+import { CheckoutButton, SubscriptionDetailsButton } from '@clerk/clerk-react/experimental';
 import { Link } from 'react-router-dom';
 import { Crown, Zap, Building, Check, ArrowLeft } from 'lucide-react';
+
+// TODO: Replace with actual Clerk plan IDs after creating plans in Clerk Dashboard
+const CLERK_PLAN_IDS = {
+  pro: 'cplan_pro_placeholder',
+  business: 'cplan_business_placeholder',
+};
 
 const PLAN_FEATURES = {
   free: {
     icon: Zap,
     price: '$0',
-    features: ['10 MB max file size', '500 MB total storage', 'Basic file types', 'API access'],
+    features: [
+      '10 MB images',
+      '50 MB videos',
+      '25 MB documents',
+      '50 MB archives',
+      '500 MB total storage',
+      'API access',
+      'Burn after read',
+    ],
   },
   pro: {
     icon: Crown,
-    price: '$9.99/mo',
-    features: ['25 MB max file size', '10 GB total storage', 'All file types', 'Priority support', 'No ads'],
+    price: '$3.99/mo',
+    features: [
+      '25 MB images',
+      '500 MB videos',
+      '100 MB documents',
+      '200 MB archives',
+      '10 GB total storage',
+      'Password protection',
+      'Priority support',
+    ],
   },
   business: {
     icon: Building,
-    price: '$29.99/mo',
-    features: ['50 MB max file size', 'Unlimited storage', 'All file types', 'Priority support', 'Custom branding', 'Team features'],
+    price: '$9.99/mo',
+    features: [
+      '50 MB images',
+      '2 GB videos',
+      '250 MB documents',
+      '500 MB archives',
+      'Unlimited storage',
+      'Custom expiration times',
+      'Team sharing (coming soon)',
+    ],
   },
 };
 
@@ -36,6 +66,8 @@ function SubscriptionContent() {
   const storagePercentage = isFinite(tierLimits.totalStorage) 
     ? Math.min(100, (storageUsed / tierLimits.totalStorage) * 100)
     : 0;
+
+  const isPaidUser = currentTier !== 'free';
 
   if (isLoading) {
     return <div className="container mx-auto px-4 py-20 text-center">Loading...</div>;
@@ -72,6 +104,15 @@ function SubscriptionContent() {
               </div>
               <Progress value={storagePercentage} className="h-2" />
             </div>
+            {isPaidUser && (
+              <div className="pt-2">
+                <SubscriptionDetailsButton>
+                  <Button variant="outline" size="sm">
+                    Manage Subscription
+                  </Button>
+                </SubscriptionDetailsButton>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -80,6 +121,7 @@ function SubscriptionContent() {
           {(Object.entries(PLAN_FEATURES) as [keyof typeof PLAN_FEATURES, typeof PLAN_FEATURES.free][]).map(([tier, plan]) => {
             const Icon = plan.icon;
             const isCurrentPlan = tier === currentTier;
+            const canUpgrade = tier !== 'free' && !isCurrentPlan;
             
             return (
               <Card key={tier} className={`bg-card border-border ${isCurrentPlan ? 'ring-2 ring-primary' : ''}`}>
@@ -101,10 +143,18 @@ function SubscriptionContent() {
                   </ul>
                   {isCurrentPlan ? (
                     <Button disabled className="w-full">Current Plan</Button>
+                  ) : canUpgrade ? (
+                    <CheckoutButton planId={CLERK_PLAN_IDS[tier as 'pro' | 'business']}>
+                      <Button className="w-full">
+                        Upgrade to {tier.charAt(0).toUpperCase() + tier.slice(1)}
+                      </Button>
+                    </CheckoutButton>
                   ) : (
-                    <Button variant="outline" className="w-full" disabled>
-                      {tier === 'free' ? 'Downgrade' : 'Upgrade'} (Coming Soon)
-                    </Button>
+                    <SubscriptionDetailsButton>
+                      <Button variant="outline" className="w-full">
+                        Manage Plan
+                      </Button>
+                    </SubscriptionDetailsButton>
                   )}
                 </CardContent>
               </Card>
@@ -113,7 +163,7 @@ function SubscriptionContent() {
         </div>
 
         <p className="text-sm text-muted-foreground text-center">
-          Billing integration coming soon. Contact support for enterprise plans.
+          Powered by Clerk Billing. Contact support for enterprise plans.
         </p>
       </div>
     </div>
