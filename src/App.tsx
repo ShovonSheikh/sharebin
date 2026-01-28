@@ -85,13 +85,21 @@ const App = () => (
     publishableKey={clerkPubKey}
     appearance={{
       variables: {
-        colorPrimary: 'hsl(142.1 76.2% 36.3%)',
-        colorBackground: 'hsl(240 10% 3.9%)',
-        colorInputBackground: 'hsl(240 3.7% 15.9%)',
-        colorInputText: 'hsl(0 0% 98%)',
-        colorText: 'hsl(0 0% 98%)',
-        colorTextSecondary: 'hsl(240 5% 64.9%)',
+        colorPrimary: 'hsl(24 95% 55%)',
+        colorBackground: 'hsl(220 20% 10%)',
+        colorInputBackground: 'hsl(220 15% 18%)',
+        colorInputText: 'hsl(210 20% 95%)',
+        colorText: 'hsl(210 20% 95%)',
+        colorTextSecondary: 'hsl(210 15% 60%)',
+        colorDanger: 'hsl(0 70% 50%)',
+        colorSuccess: 'hsl(142 70% 45%)',
         borderRadius: '0.5rem',
+        fontFamily: "'Space Grotesk', system-ui, sans-serif",
+      },
+      elements: {
+        card: 'bg-card border border-border shadow-lg',
+        primaryButton: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
       },
     }}
   >

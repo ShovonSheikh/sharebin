@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -12,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { EXPIRATION_OPTIONS, getExpirationDate, hashPassword } from '@/lib/constants';
+import { getExpirationOptionsForTier, getExpirationDate, hashPassword } from '@/lib/constants';
 import { 
   validateFileForTier, 
   formatFileSize, 
@@ -24,6 +25,7 @@ import {
 } from '@/lib/fileUtils';
 import { TIER_LIMITS, formatStorageLimit } from '@/lib/tierLimits';
 import { updateStorageUsed } from '@/lib/storageUtils';
+import { hasFeature, getFeatureUpgradeTier } from '@/lib/featureGating';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useUserProfile } from '@/hooks/useUserProfile';
@@ -45,7 +47,8 @@ import {
   Image,
   File,
   Package,
-  Sparkles
+  Sparkles,
+  Crown
 } from 'lucide-react';
 
 interface UploadedFile {
@@ -75,6 +78,8 @@ export function FileUploadForm() {
 
   const userTier = profile?.subscription_tier || 'free';
   const tierLimits = TIER_LIMITS[userTier];
+  const canUsePassword = hasFeature(userTier, 'PASSWORD_PROTECTION');
+  const expirationOptions = getExpirationOptionsForTier(userTier);
 
   const handleFileSelect = useCallback((file: File) => {
     setUpgradePrompt(null);
@@ -178,7 +183,7 @@ export function FileUploadForm() {
 
       // Create share record
       const expiresAt = getExpirationDate(expiration);
-      const passwordHash = password ? await hashPassword(password) : null;
+      const passwordHash = canUsePassword && password ? await hashPassword(password) : null;
 
       const { data, error: insertError } = await supabase
         .from('shares')
@@ -208,7 +213,7 @@ export function FileUploadForm() {
       }
 
       const features = [];
-      if (password) features.push('password protected');
+      if (canUsePassword && password) features.push('password protected');
       if (burnAfterRead) features.push('burn after reading');
 
       const message = features.length > 0
@@ -428,31 +433,47 @@ export function FileUploadForm() {
           <Label htmlFor="file-password" className="flex items-center gap-2 text-sm font-medium">
             <Lock className="h-4 w-4 text-primary" />
             Password Protection
+            {!canUsePassword && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Crown className="h-3 w-3" />
+                {getFeatureUpgradeTier('PASSWORD_PROTECTION')}
+              </Badge>
+            )}
           </Label>
-          <div className="relative">
-            <Input
-              id="file-password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Optional password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-background border-border pr-10"
-              maxLength={100}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              )}
-            </Button>
-          </div>
+          {canUsePassword ? (
+            <div className="relative">
+              <Input
+                id="file-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Optional password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background border-border pr-10"
+                maxLength={100}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+          ) : (
+            <Link to="/subscription">
+              <Input
+                disabled
+                placeholder="Upgrade to Pro for password protection"
+                className="bg-background/50 border-border cursor-pointer opacity-60"
+              />
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-3 sm:pt-6">
@@ -475,11 +496,18 @@ export function FileUploadForm() {
               <SelectValue placeholder="Expiration" />
             </SelectTrigger>
             <SelectContent>
-              {EXPIRATION_OPTIONS.map((option) => (
+              {expirationOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
+              {userTier === 'free' && (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground border-t border-border mt-1">
+                  <Link to="/subscription" className="text-primary hover:underline">
+                    Upgrade for more options
+                  </Link>
+                </div>
+              )}
             </SelectContent>
           </Select>
         </div>
