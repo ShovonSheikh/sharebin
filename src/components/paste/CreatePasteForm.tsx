@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -11,12 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { SYNTAX_OPTIONS, EXPIRATION_OPTIONS, getExpirationDate, hashPassword } from '@/lib/constants';
+import { SYNTAX_OPTIONS, getExpirationOptionsForTier, getExpirationDate, hashPassword } from '@/lib/constants';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useUserProfile } from '@/hooks/useUserProfile';
+import { hasFeature, getFeatureUpgradeTier } from '@/lib/featureGating';
 import { toast } from 'sonner';
-import { Share2, Loader2, Lock, Flame, Eye, EyeOff, Copy, Check } from 'lucide-react';
+import { Share2, Loader2, Lock, Flame, Eye, EyeOff, Copy, Check, Crown } from 'lucide-react';
 import { LiveCodeEditor } from '@/components/editor/LiveCodeEditor';
+import { Link } from 'react-router-dom';
 
 export function CreatePasteForm() {
   const [content, setContent] = useState('');
@@ -30,7 +34,12 @@ export function CreatePasteForm() {
   const [createdPasteUrl, setCreatedPasteUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const { user } = useAuth();
+  const { profile } = useUserProfile();
   const navigate = useNavigate();
+
+  const userTier = profile?.subscription_tier || 'free';
+  const canUsePassword = hasFeature(userTier, 'PASSWORD_PROTECTION');
+  const expirationOptions = getExpirationOptionsForTier(userTier);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,7 +53,7 @@ export function CreatePasteForm() {
 
     try {
       const expiresAt = getExpirationDate(expiration);
-      const passwordHash = password ? await hashPassword(password) : null;
+      const passwordHash = canUsePassword && password ? await hashPassword(password) : null;
 
       const { data, error } = await supabase
         .from('shares')
@@ -63,7 +72,7 @@ export function CreatePasteForm() {
       if (error) throw error;
 
       const features = [];
-      if (password) features.push('password protected');
+      if (canUsePassword && password) features.push('password protected');
       if (burnAfterRead) features.push('burn after reading');
 
       const message = features.length > 0
@@ -177,31 +186,47 @@ export function CreatePasteForm() {
           <Label htmlFor="password" className="flex items-center gap-2 text-sm font-medium">
             <Lock className="h-4 w-4 text-primary" />
             Password Protection
+            {!canUsePassword && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Crown className="h-3 w-3" />
+                {getFeatureUpgradeTier('PASSWORD_PROTECTION')}
+              </Badge>
+            )}
           </Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Optional password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="bg-background border-border pr-10"
-              maxLength={100}
-            />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? (
-                <EyeOff className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Eye className="h-4 w-4 text-muted-foreground" />
-              )}
-            </Button>
-          </div>
+          {canUsePassword ? (
+            <div className="relative">
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Optional password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-background border-border pr-10"
+                maxLength={100}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </Button>
+            </div>
+          ) : (
+            <Link to="/subscription">
+              <Input
+                disabled
+                placeholder="Upgrade to Pro for password protection"
+                className="bg-background/50 border-border cursor-pointer opacity-60"
+              />
+            </Link>
+          )}
         </div>
 
         <div className="flex items-center gap-3 sm:pt-6">
@@ -239,11 +264,18 @@ export function CreatePasteForm() {
               <SelectValue placeholder="Expiration" />
             </SelectTrigger>
             <SelectContent>
-              {EXPIRATION_OPTIONS.map((option) => (
+              {expirationOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
               ))}
+              {userTier === 'free' && (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground border-t border-border mt-1">
+                  <Link to="/subscription" className="text-primary hover:underline">
+                    Upgrade for more options
+                  </Link>
+                </div>
+              )}
             </SelectContent>
           </Select>
         </div>

@@ -27,15 +27,31 @@ export const SYNTAX_OPTIONS = [
 
 export const EXPIRATION_OPTIONS = [
   { value: 'never', label: 'Never' },
+  { value: '1h', label: '1 Hour' },
   { value: '1d', label: '1 Day' },
   { value: '1w', label: '1 Week' },
   { value: '1m', label: '1 Month' },
   { value: '3m', label: '3 Months' },
+  { value: '1y', label: '1 Year' },
 ] as const;
+
+import type { SubscriptionTier } from './tierLimits';
+
+// Free tier only gets limited expiration options
+const FREE_EXPIRATION_VALUES = ['never', '1h', '1d', '1w'];
+
+export function getExpirationOptionsForTier(tier: SubscriptionTier) {
+  if (tier === 'free') {
+    return EXPIRATION_OPTIONS.filter(opt => FREE_EXPIRATION_VALUES.includes(opt.value));
+  }
+  return EXPIRATION_OPTIONS;
+}
 
 export function getExpirationDate(expiration: string): Date | null {
   const now = new Date();
   switch (expiration) {
+    case '1h':
+      return new Date(now.getTime() + 60 * 60 * 1000);
     case '1d':
       return new Date(now.getTime() + 24 * 60 * 60 * 1000);
     case '1w':
@@ -44,6 +60,8 @@ export function getExpirationDate(expiration: string): Date | null {
       return new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
     case '3m':
       return new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    case '1y':
+      return new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
     default:
       return null;
   }

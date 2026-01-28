@@ -4,6 +4,18 @@ import { SignedOut } from '@clerk/clerk-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
+const clerkAppearance = {
+  variables: {
+    colorPrimary: 'hsl(24 95% 55%)',
+    colorBackground: 'hsl(220 20% 10%)',
+    colorInputBackground: 'hsl(220 15% 18%)',
+    colorInputText: 'hsl(210 20% 95%)',
+    colorText: 'hsl(210 20% 95%)',
+    colorTextSecondary: 'hsl(210 15% 60%)',
+    borderRadius: '0.5rem',
+  },
+};
+
 export default function Pricing() {
   return (
     <Layout>
@@ -17,7 +29,7 @@ export default function Pricing() {
           </div>
           
           {/* Clerk Pricing Table - handles all the billing UI */}
-          <PricingTable />
+          <PricingTable appearance={clerkAppearance} />
           
           <SignedOut>
             <div className="text-center mt-8">
