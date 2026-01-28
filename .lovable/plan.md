@@ -1,130 +1,237 @@
 
-
-# Update Pricing to $3.99/$9.99 with Clerk Billing Integration
+# Fix Clerk Styling and Add Feature Gating by Plan
 
 ## Summary
 
-This plan updates the pricing structure to the new lower pricing ($3.99/mo for Pro, $9.99/mo for Business) and updates the PLAN_FEATURES to accurately reflect file type limits as shown in the revised pricing structure.
+This plan addresses two issues:
+1. **Fix Clerk component styling** - The current green primary color and dark harsh styling doesn't match the app's orange theme
+2. **Add feature gating** - Lock certain features behind Pro and Business plans to enforce the pricing tiers
 
 ---
 
-## Revised Pricing Structure (from image)
+## Part 1: Fix Clerk Component Styling
 
-| Plan | Price | Image | Video | Document | Archive | Storage |
-|------|-------|-------|-------|----------|---------|---------|
-| **Free** | $0 | 10 MB | 50 MB | 25 MB | 50 MB | 500 MB |
-| **Pro** | $3.99/mo | 25 MB | 500 MB | 100 MB | 200 MB | 10 GB |
-| **Business** | $9.99/mo | 50 MB | 2 GB | 250 MB | 500 MB | Unlimited |
+### Problem
+The ClerkProvider is using:
+- Green primary color: `hsl(142.1 76.2% 36.3%)` (green)
+- Dark backgrounds that appear "harsh" and don't blend with the app's theme
+
+The app uses an **orange theme** with primary color `hsl(24 95% 55%)` (~#e86e21).
+
+### Solution
+Update the `ClerkProvider` appearance configuration in `src/App.tsx` to match the app's color scheme:
+
+**Current:**
+```typescript
+appearance={{
+  variables: {
+    colorPrimary: 'hsl(142.1 76.2% 36.3%)',  // Green
+    colorBackground: 'hsl(240 10% 3.9%)',     // Very dark
+    // ...
+  },
+}}
+```
+
+**Updated:**
+```typescript
+appearance={{
+  variables: {
+    colorPrimary: 'hsl(24 95% 55%)',           // Orange (matches --primary)
+    colorBackground: 'hsl(220 20% 10%)',       // App background
+    colorInputBackground: 'hsl(220 15% 18%)',  // App secondary
+    colorInputText: 'hsl(210 20% 95%)',        // App foreground
+    colorText: 'hsl(210 20% 95%)',             // App foreground
+    colorTextSecondary: 'hsl(210 15% 60%)',    // App muted-foreground
+    colorDanger: 'hsl(0 70% 50%)',             // App destructive
+    colorSuccess: 'hsl(142 70% 45%)',          // App success
+    borderRadius: '0.5rem',
+    fontFamily: "'Space Grotesk', system-ui, sans-serif",
+  },
+  elements: {
+    card: 'bg-card border border-border shadow-lg',
+    primaryButton: 'bg-primary text-primary-foreground hover:bg-primary/90',
+    formButtonPrimary: 'bg-primary text-primary-foreground hover:bg-primary/90',
+  },
+}}
+```
+
+### Files to Modify
+- `src/App.tsx` - Update ClerkProvider appearance variables
+- Also add `checkoutProps` appearance to `CheckoutButton` components in `Subscription.tsx`
+- Add `appearance` prop to `PricingTable` in `Pricing.tsx`
 
 ---
 
-## Files to Modify
+## Part 2: Add Feature Gating by Plan
 
-### 1. `src/pages/Subscription.tsx`
+### Features by Tier
 
-**Update PLAN_FEATURES constant (lines 13-29):**
+| Feature | Free | Pro | Business |
+|---------|------|-----|----------|
+| Basic file uploads | Yes | Yes | Yes |
+| API access | Yes | Yes | Yes |
+| Burn after read | Yes | Yes | Yes |
+| Password protection | No | Yes | Yes |
+| Custom expiration times | Limited | Yes | Yes |
+| Large file uploads | No | Yes | Yes |
+| Priority support | No | Yes | Yes |
+| Team sharing | No | No | Coming Soon |
+
+### Implementation Approach
+
+Since we're using the database `subscription_tier` field (synced via webhook), we'll check the user's tier from the profile and conditionally enable/disable features.
+
+### Files to Modify
+
+#### 1. `src/components/upload/FileUploadForm.tsx`
+
+Add feature gating for password protection:
 
 ```typescript
-const PLAN_FEATURES = {
-  free: {
-    icon: Zap,
-    price: '$0',
-    features: [
-      '10 MB images',
-      '50 MB videos',
-      '25 MB documents',
-      '50 MB archives',
-      '500 MB total storage',
-      'API access',
-      'Burn after read',
-    ],
-  },
-  pro: {
-    icon: Crown,
-    price: '$3.99/mo',
-    features: [
-      '25 MB images',
-      '500 MB videos',
-      '100 MB documents',
-      '200 MB archives',
-      '10 GB total storage',
-      'Password protection',
-      'Priority support',
-    ],
-  },
-  business: {
-    icon: Building,
-    price: '$9.99/mo',
-    features: [
-      '50 MB images',
-      '2 GB videos',
-      '250 MB documents',
-      '500 MB archives',
-      'Unlimited storage',
-      'Custom expiration times',
-      'Team sharing (coming soon)',
-    ],
-  },
+const canUsePasswordProtection = userTier !== 'free';
+
+// In the password input section:
+{canUsePasswordProtection ? (
+  <div className="flex-1 space-y-2">
+    <Label>Password Protection</Label>
+    <Input
+      type="password"
+      placeholder="Optional password"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+    />
+  </div>
+) : (
+  <div className="flex-1 space-y-2 opacity-50">
+    <Label className="flex items-center gap-2">
+      Password Protection
+      <Badge variant="outline" className="text-xs">Pro</Badge>
+    </Label>
+    <Input disabled placeholder="Upgrade to Pro for password protection" />
+  </div>
+)}
+```
+
+#### 2. `src/components/paste/CreatePasteForm.tsx`
+
+Apply the same password protection gating for text pastes.
+
+#### 3. Create `src/lib/featureGating.ts` (New File)
+
+A utility file for checking feature access:
+
+```typescript
+import { SubscriptionTier } from './tierLimits';
+
+export const FEATURES = {
+  PASSWORD_PROTECTION: { minTier: 'pro' as SubscriptionTier },
+  CUSTOM_EXPIRATION: { minTier: 'pro' as SubscriptionTier },
+  PRIORITY_SUPPORT: { minTier: 'pro' as SubscriptionTier },
+  LARGE_UPLOADS: { minTier: 'pro' as SubscriptionTier },
+  TEAM_SHARING: { minTier: 'business' as SubscriptionTier, comingSoon: true },
 };
+
+const TIER_ORDER: SubscriptionTier[] = ['free', 'pro', 'business'];
+
+export function hasFeature(
+  userTier: SubscriptionTier,
+  featureKey: keyof typeof FEATURES
+): boolean {
+  const feature = FEATURES[featureKey];
+  const userTierIndex = TIER_ORDER.indexOf(userTier);
+  const requiredTierIndex = TIER_ORDER.indexOf(feature.minTier);
+  return userTierIndex >= requiredTierIndex;
+}
+
+export function getFeatureUpgradeTier(featureKey: keyof typeof FEATURES): string {
+  return FEATURES[featureKey].minTier.charAt(0).toUpperCase() + 
+         FEATURES[featureKey].minTier.slice(1);
+}
 ```
 
-**Additionally:**
-- Import `CheckoutButton` and `SubscriptionDetailsButton` from `@clerk/clerk-react/experimental`
-- Replace disabled "Upgrade" buttons with `<CheckoutButton planId="..." />` components
-- Add `<SubscriptionDetailsButton />` for paid plan users to manage their subscription
-- Update footer text to indicate Clerk Billing is integrated
+#### 4. `src/components/paste/CreatePasteForm.tsx`
 
-### 2. `src/lib/tierLimits.ts`
+Apply feature gating to password protection:
 
-**Update tier descriptions:**
-- `free.description`: "Get started with basic file sharing"
-- `pro.description`: "Expanded limits for regular users"
-- `business.description`: "Unlimited storage for power users and teams"
-
-### 3. Create `src/pages/Pricing.tsx` (New File)
-
-A public pricing page using Clerk's `<PricingTable />` component that automatically displays all plans configured in Clerk Dashboard.
-
-### 4. `src/App.tsx`
-
-Add route for the new Pricing page:
 ```typescript
-<Route path="/pricing" element={<Pricing />} />
+import { hasFeature, getFeatureUpgradeTier, FEATURES } from '@/lib/featureGating';
+
+// In component:
+const canUsePassword = hasFeature(userTier, 'PASSWORD_PROTECTION');
+
+// Disable password field and show upgrade prompt if not available
 ```
 
-### 5. `src/components/layout/Header.tsx`
+---
 
-Add a "Pricing" link visible to all users (signed in or out).
+## Part 3: Add Custom Expiration Gating
+
+For free users, limit expiration options. Pro and Business get all options.
+
+### Modify `src/lib/constants.ts`
+
+Add tier-based expiration filtering:
+
+```typescript
+export function getExpirationOptionsForTier(tier: SubscriptionTier) {
+  const freeOptions = ['1h', '1d', '7d', 'never'];
+  
+  if (tier === 'free') {
+    return EXPIRATION_OPTIONS.filter(opt => freeOptions.includes(opt.value));
+  }
+  return EXPIRATION_OPTIONS; // All options for paid users
+}
+```
 
 ---
 
-## Implementation Order
+## Implementation Summary
 
-1. Update `src/lib/tierLimits.ts` - Update descriptions
-2. Update `src/pages/Subscription.tsx` - New PLAN_FEATURES with correct limits and Clerk Billing components
-3. Create `src/pages/Pricing.tsx` - Public pricing page with PricingTable
-4. Update `src/App.tsx` - Add /pricing route
-5. Update `src/components/layout/Header.tsx` - Add Pricing link
+### Files to Create
+| File | Description |
+|------|-------------|
+| `src/lib/featureGating.ts` | Feature access checking utilities |
+
+### Files to Modify
+| File | Changes |
+|------|---------|
+| `src/App.tsx` | Update ClerkProvider appearance with orange theme |
+| `src/pages/Subscription.tsx` | Add checkoutProps appearance to CheckoutButton |
+| `src/pages/Pricing.tsx` | Add appearance prop to PricingTable |
+| `src/components/upload/FileUploadForm.tsx` | Gate password protection feature |
+| `src/components/paste/CreatePasteForm.tsx` | Gate password protection feature |
+| `src/lib/constants.ts` | Add tier-based expiration options function |
 
 ---
 
-## Manual Setup Required After Code Changes
+## Color Mapping Reference
 
-1. **In Clerk Dashboard → Billing Settings:**
-   - Enable Billing
-   - Connect Stripe (use development gateway for testing)
+| App Variable | HSL Value | Clerk Variable |
+|--------------|-----------|----------------|
+| `--background` | `220 20% 10%` | `colorBackground` |
+| `--foreground` | `210 20% 95%` | `colorText` |
+| `--primary` | `24 95% 55%` | `colorPrimary` |
+| `--secondary` | `220 15% 18%` | `colorInputBackground` |
+| `--muted-foreground` | `210 15% 60%` | `colorTextSecondary` |
+| `--destructive` | `0 70% 50%` | `colorDanger` |
+| `--border` | `220 15% 22%` | N/A (use elements) |
 
-2. **Create Plans in Clerk Dashboard → Subscription Plans:**
-   - **Pro Plan**: $3.99/month with features:
-     - 25 MB images, 500 MB videos, 100 MB documents, 200 MB archives, 10 GB storage
-   - **Business Plan**: $9.99/month with features:
-     - 50 MB images, 2 GB videos, 250 MB documents, 500 MB archives, Unlimited storage
+---
 
-3. **Copy Plan IDs** (format: `cplan_xxx`) and update:
-   - `CheckoutButton planId` props in `Subscription.tsx`
-   - `mapPlanToTier()` in `clerk-webhook/index.ts`
+## UI Changes
 
-4. **Configure Webhook** (if not already done):
-   - Endpoint: `https://gcwllpqedjcihrzexixq.supabase.co/functions/v1/clerk-webhook`
-   - Events: `user.created`, `user.updated`, `user.deleted`, `subscription.created`, `subscription.updated`, `subscription.deleted`
+### Password Protection (Free User View)
+- Field appears disabled/grayed out
+- Shows "Pro" badge next to label
+- Placeholder text: "Upgrade to Pro for password protection"
 
+### Password Protection (Pro/Business User View)
+- Field is fully functional
+- No upgrade prompts shown
+
+### Expiration Options (Free User)
+- Limited to: 1 hour, 1 day, 7 days, Never
+- Shows subtle note: "More options with Pro"
+
+### Expiration Options (Pro/Business User)
+- All options available: 10 min, 1 hour, 1 day, 7 days, 30 days, 1 year, Never
